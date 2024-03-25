@@ -1,6 +1,4 @@
 CC=gcc
-AR=ar
-ARFLAGS=rc
 FLAGS= -Wall -Werror -Wextra
 NAME=ft_nm
 SRC= 	srcs/ft_nm.c \

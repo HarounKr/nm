@@ -1,0 +1,2 @@
+readelf --file-header ft_nm
+readelf --section-headers ft_nm

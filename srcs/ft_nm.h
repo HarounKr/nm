@@ -8,3 +8,6 @@
 #include <sys/stat.h>
 #include <stdio.h>
 #include <unistd.h>
+#include <elf.h>
+
+int handle_file_errors(int fd, struct stat buf);
