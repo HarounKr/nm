@@ -3,7 +3,7 @@ FLAGS= -Wall -Werror -Wextra
 NAME=ft_nm
 SRC= 	srcs/ft_nm.c \
 
-LIBFT=  libft/ft_strlen.c libft/ft_putstr_fd.c  \
+LIBFT=  libft/ft_strlen.c libft/ft_putstr_fd.c libft/ft_memcpy.c libft/ft_strncmp.c \
 
 OBJ = $(SRC:.c=.o) $(LIBFT:.c=.o)
 all: $(NAME)
