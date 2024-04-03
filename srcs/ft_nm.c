@@ -5,13 +5,13 @@
 //     return 0;
 // }
 
-char *get_shstrtab(uint8_t *file_data, uint64_t shstrtab_size, Elf64_Off shstrtab_offset) {
-    char *shstrtab;
+char *get_strtab(uint8_t *file_data, uint64_t strtab_size, Elf64_Off strtab_offset) {
+    char *strtab;
 
-    shstrtab = (char *) malloc(shstrtab_size);
-    ft_memcpy(shstrtab, (char *)(file_data + shstrtab_offset), shstrtab_size);
+    strtab = (char *) malloc(strtab_size);
+    ft_memcpy(strtab, (char *)(file_data + strtab_offset), strtab_size);
 
-    return shstrtab;
+    return strtab;
 }
 
 int analyze_file(uint8_t *file_data) {
@@ -21,8 +21,9 @@ int analyze_file(uint8_t *file_data) {
     Elf64_Shdr *symtab_hdr;
     Elf64_Shdr *strtab_hdr;
     uint16_t e_shstrndx;
-    char *shstrtab;
-    char *sh_name;
+    int symbols_offset; 
+    char *strtab;
+    char *name;
     file_hdr = (Elf64_Ehdr *) file_data;
 
     if (file_hdr->e_ident[EI_MAG0] != ELFMAG0 || file_hdr->e_ident[EI_MAG1] != ELFMAG1 ||
@@ -34,24 +35,33 @@ int analyze_file(uint8_t *file_data) {
     } else if (file_hdr->e_ident[EI_CLASS] == ELFCLASS64) {
         sections_hdr = (Elf64_Shdr *) (file_data + file_hdr->e_shoff);
         e_shstrndx = file_hdr->e_shstrndx;
-        shstrtab = get_shstrtab(file_data, sections_hdr[e_shstrndx].sh_size, sections_hdr[e_shstrndx].sh_offset);
+        strtab = get_strtab(file_data, sections_hdr[e_shstrndx].sh_size, sections_hdr[e_shstrndx].sh_offset);
         
         for (int i = 0; i < file_hdr->e_shnum; i++) {
-            sh_name = &shstrtab[sections_hdr[i].sh_name];
-            if (!ft_strncmp(sh_name, ".symtab", ft_strlen(".symtab"))) {
-                printf("%ld\n", sections_hdr[i].sh_offset);
+            name = &strtab[sections_hdr[i].sh_name];
+            if (!ft_strncmp(name, ".symtab", ft_strlen(".symtab")))
                 symtab_hdr = &sections_hdr[i];
-            }
-            else if (!ft_strncmp(sh_name, ".strtab", ft_strlen(".strtab"))) {
-                printf("%ld\n", sections_hdr[i].sh_offset);
+            else if (!ft_strncmp(name, ".strtab", ft_strlen(".strtab")))
                 strtab_hdr = &sections_hdr[i];
-            }
-            else {
-                printf("No symtab\n");
+        }
+        Elf64_Sym *symtab = (Elf64_Sym *)(file_data + symtab_hdr->sh_offset);
+        symbols_offset = symtab_hdr->sh_size / sizeof(Elf64_Sym);
+        free(strtab);
+        strtab = get_strtab(file_data, strtab_hdr->sh_size, strtab_hdr->sh_offset);
+        for (int i = 0; i < symbols_offset; i++) {
+            // unsigned int bind = ELF64_ST_BIND(symtab[i].st_info);
+            unsigned int type = ELF64_ST_TYPE(symtab[i].st_info);
+            printf("bind : %d | type : %d\n", symtab[i].st_info, type);
+            name = &strtab[symtab[i].st_name];
+            if (!ft_strlen(name) == STT_NOTYPE && symtab[i].st_info != STT_FILE) {
+                printf("%d | ", symtab[i].st_info);
+                printf("%s\n", name);
             }
         }
-        printf("symtab : %ld\n", symtab_hdr->sh_size);
-        printf("strtab : %ld\n", strtab_hdr->sh_size);
+        // printf("symtab : %ld\n", symtab_hdr->sh_size / 24);
+        // printf("symtab : %d\n", symtab_hdr->sh_info);
+        // printf("strtab size : %ld\n", strtab_hdr->sh_size);
+        // printf("strtab : %s\n", &strtab[12352]);
     }
     return 0;
 }
