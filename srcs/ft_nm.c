@@ -4,6 +4,20 @@
     
 //     return 0;
 // }
+int x;
+
+void format_and_print_address(uint64_t address) {
+    char formatted_address[19]; // Assez grand pour "0000000000004010" + '\0'
+    formatted_address[18] = '\0';
+
+    for (int i = 17; i >= 0; --i) {
+        int digit = address & 0xF; // Récupère le dernier chiffre hexadécimal
+        formatted_address[i] = digit < 10 ? '0' + digit : 'a' + digit - 10;
+        address >>= 4; // Déplace l'adresse de 4 bits vers la droite pour le prochain chiffre
+    }
+
+    printf("Adresse: %s  ", formatted_address);
+}
 
 char *get_strtab(uint8_t *file_data, uint64_t strtab_size, Elf64_Off strtab_offset) {
     char *strtab;
@@ -14,15 +28,69 @@ char *get_strtab(uint8_t *file_data, uint64_t strtab_size, Elf64_Off strtab_offs
     return strtab;
 }
 
+const char *get_elf_symbol_type(unsigned int type) {
+    switch (type) {
+        case STT_NOTYPE:   return "NOTYPE";
+        case STT_OBJECT:   return "OBJECT";
+        case STT_FUNC:     return "FUNC";
+        case STT_SECTION:  return "SECTION";
+        case STT_FILE:     return "FILE";
+        case STT_COMMON:   return "COMMON";
+        case STT_TLS:      return "TLS";
+        default:           return "<unknown>";
+    }
+}
+
+char get_final_symbol_type(unsigned int type, unsigned int bind, char *section_name) {
+    char final_type;
+    
+    if (bind == STB_WEAK) {
+        if (!ft_strlen(section_name))
+            final_type = 'w';
+        else
+            final_type = 'W';
+    } else {
+        if (!ft_strncmp(section_name, ".text", ft_strlen(".text"))) {
+            if (bind == STB_LOCAL)
+                final_type = 't';
+            else if (bind == STB_GLOBAL)
+                final_type = 'T';
+        } else if (!ft_strncmp(section_name, ".bss", ft_strlen(".bss"))) {
+            if (bind == STB_LOCAL)
+                final_type = 'b';
+            else if (bind == STB_GLOBAL)
+                final_type = 'B'; 
+        } else if (type == STT_COMMON && bind == STB_GLOBAL)
+            final_type = 'C';
+        else if (!ft_strncmp(section_name, ".data", ft_strlen(".data"))) {
+            if (bind == STB_LOCAL)
+                final_type = 'd';
+            else if (bind == STB_GLOBAL)
+                final_type = 'D';
+        }
+        else if (!ft_strncmp(section_name, ".rodata", ft_strlen(".rodata")) || !ft_strncmp(section_name, ".eh_frame", ft_strlen(".eh_frame")) || 
+                    !ft_strncmp(section_name, ".eh_frame_hdr", ft_strlen(".eh_frame_hdr")) || !ft_strncmp(section_name, ".eh_frame_hdr", ft_strlen(".note.ABI-tag"))) {
+            if (bind == STB_LOCAL)
+                final_type = "r";
+            else
+                final_type = "R";            
+        }
+        // U a faire, V v 
+    }
+    return final_type;
+}
+
 int analyze_file(uint8_t *file_data) {
     
     Elf64_Ehdr *file_hdr;
     Elf64_Shdr *sections_hdr;
     Elf64_Shdr *symtab_hdr;
     Elf64_Shdr *strtab_hdr;
+    Elf64_Sym *symtab;
     uint16_t e_shstrndx;
-    int symbols_offset; 
+    int symbols_offset;
     char *strtab;
+    char *shstrtab;
     char *name;
     file_hdr = (Elf64_Ehdr *) file_data;
 
@@ -35,29 +103,32 @@ int analyze_file(uint8_t *file_data) {
     } else if (file_hdr->e_ident[EI_CLASS] == ELFCLASS64) {
         sections_hdr = (Elf64_Shdr *) (file_data + file_hdr->e_shoff);
         e_shstrndx = file_hdr->e_shstrndx;
-        strtab = get_strtab(file_data, sections_hdr[e_shstrndx].sh_size, sections_hdr[e_shstrndx].sh_offset);
-        
+        shstrtab = get_strtab(file_data, sections_hdr[e_shstrndx].sh_size, sections_hdr[e_shstrndx].sh_offset);
+
         for (int i = 0; i < file_hdr->e_shnum; i++) {
-            name = &strtab[sections_hdr[i].sh_name];
+            name = &shstrtab[sections_hdr[i].sh_name];
             if (!ft_strncmp(name, ".symtab", ft_strlen(".symtab")))
                 symtab_hdr = &sections_hdr[i];
             else if (!ft_strncmp(name, ".strtab", ft_strlen(".strtab")))
                 strtab_hdr = &sections_hdr[i];
         }
-        Elf64_Sym *symtab = (Elf64_Sym *)(file_data + symtab_hdr->sh_offset);
+        symtab = (Elf64_Sym *)(file_data + symtab_hdr->sh_offset);
         symbols_offset = symtab_hdr->sh_size / sizeof(Elf64_Sym);
-        free(strtab);
         strtab = get_strtab(file_data, strtab_hdr->sh_size, strtab_hdr->sh_offset);
         for (int i = 0; i < symbols_offset; i++) {
-            // unsigned int bind = ELF64_ST_BIND(symtab[i].st_info);
-            unsigned int type = ELF64_ST_TYPE(symtab[i].st_info);
-            printf("bind : %d | type : %d\n", symtab[i].st_info, type);
             name = &strtab[symtab[i].st_name];
-            if (!ft_strlen(name) == STT_NOTYPE && symtab[i].st_info != STT_FILE) {
-                printf("%d | ", symtab[i].st_info);
+            if (ft_strlen(name) != STT_NOTYPE && ELF64_ST_TYPE(symtab[i].st_info) != STT_FILE) {
+                printf("st_info  : %s   | ", get_elf_symbol_type(ELF64_ST_TYPE(symtab[i].st_info)));
+                printf("st_bind  :%d    |", ELF64_ST_BIND(symtab[i].st_info));
+                printf("st_shndx  :%d    |", symtab[i].st_shndx);
+                printf("section :%s    | ", &shstrtab[sections_hdr[symtab[i].st_shndx].sh_name]);
+                // format_and_print_address(symtab[i].st_value);
                 printf("%s\n", name);
             }
         }
+        // unsigned int bind = ELF64_ST_BIND(symtab[i].st_info);
+        // unsigned int type = ELF64_ST_TYPE(symtab[i].st_info);
+        // printf("bind : %d | type : %d\n", symtab[i].st_info, type);
         // printf("symtab : %ld\n", symtab_hdr->sh_size / 24);
         // printf("symtab : %d\n", symtab_hdr->sh_info);
         // printf("strtab size : %ld\n", strtab_hdr->sh_size);
@@ -72,6 +143,8 @@ int main(int ac, char **av) {
         uint8_t *file_data;
 
         int fd = open(av[1], O_RDONLY, S_IRUSR);
+        x = 5;
+        printf("%d\n", x);
         if (fd == -1) {
             ft_putstr_fd("Failed to open file\n", 2);
             close(fd);
