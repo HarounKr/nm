@@ -41,8 +41,19 @@ const char *get_elf_symbol_type(unsigned int type) {
     }
 }
 
+int is_section(char *section_name, char **sections) {
+
+    int size = sizeof(ro_sections) / sizeof(ro_sections[0]);
+    for (int i = 0; i < size; i++) {
+        if (!ft_strncmp(section_name, sections[i], ft_strlen(sections[i])))
+            return 0;
+    }
+    fflush(stdout);
+    return 1;
+}
+
 char get_final_symbol_type(unsigned int type, unsigned int bind, char *section_name) {
-    char final_type;
+    char final_type = '?';
     
     if (bind == STB_WEAK) {
         if (!ft_strlen(section_name))
@@ -68,12 +79,12 @@ char get_final_symbol_type(unsigned int type, unsigned int bind, char *section_n
             else if (bind == STB_GLOBAL)
                 final_type = 'D';
         }
-        else if (!ft_strncmp(section_name, ".rodata", ft_strlen(".rodata")) || !ft_strncmp(section_name, ".eh_frame", ft_strlen(".eh_frame")) || 
-                    !ft_strncmp(section_name, ".eh_frame_hdr", ft_strlen(".eh_frame_hdr")) || !ft_strncmp(section_name, ".eh_frame_hdr", ft_strlen(".note.ABI-tag"))) {
+        else if (!is_section(section_name, ro_sections)) {
+            printf("ca rentre : %s\n", section_name);
             if (bind == STB_LOCAL)
-                final_type = "r";
+                final_type = 'r';
             else
-                final_type = "R";            
+                final_type = 'R';            
         }
         // U a faire, V v 
     }
@@ -118,12 +129,13 @@ int analyze_file(uint8_t *file_data) {
         for (int i = 0; i < symbols_offset; i++) {
             name = &strtab[symtab[i].st_name];
             if (ft_strlen(name) != STT_NOTYPE && ELF64_ST_TYPE(symtab[i].st_info) != STT_FILE) {
-                printf("st_info  : %s   | ", get_elf_symbol_type(ELF64_ST_TYPE(symtab[i].st_info)));
-                printf("st_bind  :%d    |", ELF64_ST_BIND(symtab[i].st_info));
-                printf("st_shndx  :%d    |", symtab[i].st_shndx);
-                printf("section :%s    | ", &shstrtab[sections_hdr[symtab[i].st_shndx].sh_name]);
-                // format_and_print_address(symtab[i].st_value);
+                printf("st_info  : %-10s   | ", get_elf_symbol_type(ELF64_ST_TYPE(symtab[i].st_info)));
+                printf("Type     : %-10c |", get_final_symbol_type(ELF64_ST_BIND(symtab[i].st_info), ELF64_ST_BIND(symtab[i].st_info), &shstrtab[sections_hdr[symtab[i].st_shndx].sh_name])); 
+                printf("st_bind  : %-10d |", ELF64_ST_BIND(symtab[i].st_info)); 
+                printf("st_shndx : %-10d |", symtab[i].st_shndx); 
+                printf("section  : %-10s | ", &shstrtab[sections_hdr[symtab[i].st_shndx].sh_name]);
                 printf("%s\n", name);
+                // format_and_print_address(symtab[i].st_value);
             }
         }
         // unsigned int bind = ELF64_ST_BIND(symtab[i].st_info);
