@@ -10,11 +10,21 @@
 #include <unistd.h>
 #include <elf.h>
 
-char *data_sections[3] = {  ".data", ".init_array", 
-                            ".fini_array", 
+typedef struct {
+    char *adress;
+    char type;
+    char *symbol_name;
+} symbol_data;
+
+char *text_sections[4]  = { ".text", ".init", 
+                            ".fini", NULL
                         };
-char *ro_sections[4] = {    ".rodata", ".eh_frame", 
-                            ".eh_frame_hdr", ".note.ABI-tag",
+char *data_sections[6] = {  ".data", ".init_array", 
+                            ".fini_array", ".dynamic",
+                            ".got", NULL,
+                        };
+char *ro_sections[5] = {    ".rodata", ".eh_frame", 
+                            ".eh_frame_hdr", ".note.ABI-tag", NULL,
                         };
 
 int handle_file_errors(int fd, struct stat buf);
