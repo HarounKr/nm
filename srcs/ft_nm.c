@@ -4,11 +4,10 @@
     
 //     return 0;
 // }
-int x;
 
 char *formatted_address(uint64_t address) {
     char *formatted_address = malloc(sizeof(char) * 19); // "0000000000004010" + '\0'
-     if (!formatted_address)
+    if (!formatted_address)
         return NULL;
 
     for (int i = 0; i < 19; i++) {
@@ -49,15 +48,40 @@ const char *get_elf_symbol_type(unsigned int type) {
     }
 }
 
-void insertion_sort(symbol_data *array, int n) {
+int compare_strings(const char *a, const char *b) {
+    int i = 0, j = 0;
+    while (a[i] != '\0' && !ft_isalpha(a[i])) 
+        i++;  // Aller au premier caractère alphabétique
+    while (b[j] != '\0' && !ft_isalpha(b[j])) 
+        j++;  // Aller au premier caractère alphabétique
+
+    while (a[i] != '\0' && b[j] != '\0') {
+        char charA = ft_tolower(a[i]);
+        char charB = ft_tolower(b[j]);
+
+        if (charA != charB)
+            return charA - charB;
+
+        i++;
+        j++;
+        while (a[i] != '\0' && !ft_isalpha(a[i])) 
+            i++;
+        while (b[j] != '\0' && !ft_isalpha(b[j]))
+            j++;
+    }
+    return a[i] - b[j];  // Compare the rest if one string ends
+}
+
+void insertion_sort(t_symbol_data *array, int n) {
     int i, j;
-    symbol_data key;
+    t_symbol_data key;
 
     for (i = 1; i < n; i++) {
         key = array[i];
         j = i - 1;
 
-        while (j >= 0 && ft_strncmp(array[j].symbol_name, key.symbol_name, ft_strlen(key.symbol_name)) > 0) {
+        // Use compare_strings to compare entire strings properly
+        while (j >= 0 && compare_strings(array[j].name, key.name) > 0) {
             array[j + 1] = array[j];
             j = j - 1;
         }
@@ -65,13 +89,13 @@ void insertion_sort(symbol_data *array, int n) {
     }
 }
 
+
 int is_section(char *section_name, char **sections) {
 
     for (int i = 0; sections[i] != NULL; i++) {
         if (!ft_strncmp(section_name, sections[i], ft_strlen(sections[i])))
             return 0;
     }
-    fflush(stdout);
     return 1;
 }
 
@@ -115,18 +139,65 @@ char get_final_symbol_type(unsigned int type, unsigned int bind, char *section_n
     return final_type;
 }
 
+void fill_symdata(t_symbol_data *sym_data, t_elf_64 elf_64) {
+    int sym_size = 0;
+    for (int i = 0; i < elf_64.symbols_offset; i++) {
+        elf_64.name = &elf_64.strtab[elf_64.symtab[i].st_name];
+        if (ft_strlen(elf_64.name) != STT_NOTYPE && ELF64_ST_TYPE(elf_64.symtab[i].st_info) != STT_FILE) {
+            if (elf_64.symtab[i].st_shndx == SHN_UNDEF) {
+                // printf("%s\n", name);
+            }
+            if (elf_64.symtab[i].st_shndx) {
+                sym_data[sym_size].adress = formatted_address(elf_64.symtab[i].st_value);
+            }
+            else
+                sym_data[sym_size].adress = ft_strdup("                  ");
+            sym_data[sym_size].type = get_final_symbol_type(ELF64_ST_BIND(elf_64.symtab[i].st_info), ELF64_ST_BIND(elf_64.symtab[i].st_info), 
+                &elf_64.shstrtab[elf_64.sections_hdr[elf_64.symtab[i].st_shndx].sh_name]);
+            sym_data[sym_size].name = ft_strdup(elf_64.name);
+            sym_size++;
+        }
+    }
+    insertion_sort(sym_data, sym_size);
+    for (int i = 0; i < sym_size; i++) {
+        printf("%s ", sym_data[i].adress);
+        printf("%c ", sym_data[i].type);
+        printf("%s \n", sym_data[i].name);
+
+    }
+}
+
+void handle_elf_64(Elf64_Ehdr *file_hdr, u_int8_t *file_data) {
+    t_elf_64 elf_64;
+
+    elf_64.sections_hdr = (Elf64_Shdr *) (file_data + file_hdr->e_shoff);
+    elf_64.e_shstrndx = file_hdr->e_shstrndx;
+    elf_64.shstrtab = get_strtab(file_data, elf_64.sections_hdr[elf_64.e_shstrndx].sh_size, elf_64.sections_hdr[elf_64.e_shstrndx].sh_offset);
+
+    // recupere les adresses des headers symtab et strtab
+    for (int i = 0; i < file_hdr->e_shnum; i++) {
+        elf_64.name = &elf_64.shstrtab[elf_64.sections_hdr[i].sh_name];
+        if (!ft_strncmp(elf_64.name, ".symtab", ft_strlen(".symtab")))
+            elf_64.symtab_hdr = &elf_64.sections_hdr[i];
+        else if (!ft_strncmp(elf_64.name, ".strtab", ft_strlen(".strtab")))
+            elf_64.strtab_hdr = &elf_64.sections_hdr[i];
+    }
+    // recupere symtab
+    elf_64.symtab = (Elf64_Sym *)(file_data + elf_64.symtab_hdr->sh_offset);
+    // calcul de l offset entre chaque symbole
+    elf_64.symbols_offset = elf_64.symtab_hdr->sh_size / sizeof(Elf64_Sym);
+    elf_64.strtab = get_strtab(file_data, elf_64.strtab_hdr->sh_size, elf_64.strtab_hdr->sh_offset);
+    t_symbol_data *sym_data = malloc(sizeof(t_symbol_data) * elf_64.symbols_offset);
+    if (sym_data == NULL)
+        return ;
+    fill_symdata(sym_data, elf_64);
+    
+}
+
 int analyze_file(uint8_t *file_data) {
     
     Elf64_Ehdr *file_hdr;
-    Elf64_Shdr *sections_hdr;
-    Elf64_Shdr *symtab_hdr;
-    Elf64_Shdr *strtab_hdr;
-    Elf64_Sym *symtab;
-    uint16_t e_shstrndx;
-    int symbols_offset;
-    char *strtab;
-    char *shstrtab;
-    char *name;
+ 
     file_hdr = (Elf64_Ehdr *) file_data;
 
     if (file_hdr->e_ident[EI_MAG0] != ELFMAG0 || file_hdr->e_ident[EI_MAG1] != ELFMAG1 ||
@@ -136,49 +207,36 @@ int analyze_file(uint8_t *file_data) {
     } else if (file_hdr->e_ident[EI_CLASS] == ELFCLASS32) {
         ft_putstr_fd("ELF 32\n", 2);
     } else if (file_hdr->e_ident[EI_CLASS] == ELFCLASS64) {
-        sections_hdr = (Elf64_Shdr *) (file_data + file_hdr->e_shoff);
-        e_shstrndx = file_hdr->e_shstrndx;
-        shstrtab = get_strtab(file_data, sections_hdr[e_shstrndx].sh_size, sections_hdr[e_shstrndx].sh_offset);
-
-        for (int i = 0; i < file_hdr->e_shnum; i++) {
-            name = &shstrtab[sections_hdr[i].sh_name];
-            if (!ft_strncmp(name, ".symtab", ft_strlen(".symtab")))
-                symtab_hdr = &sections_hdr[i];
-            else if (!ft_strncmp(name, ".strtab", ft_strlen(".strtab")))
-                strtab_hdr = &sections_hdr[i];
-        }
-        symtab = (Elf64_Sym *)(file_data + symtab_hdr->sh_offset);
-        symbols_offset = symtab_hdr->sh_size / sizeof(Elf64_Sym);
-        strtab = get_strtab(file_data, strtab_hdr->sh_size, strtab_hdr->sh_offset);
-        for (int i = 0; i < symbols_offset; i++) {
-            name = &strtab[symtab[i].st_name];
-            if (ft_strlen(name) != STT_NOTYPE && ELF64_ST_TYPE(symtab[i].st_info) != STT_FILE) {
-                // printf("st_info  : %-10s   | ", get_elf_symbol_type(ELF64_ST_TYPE(symtab[i].st_info)));
-                // printf("Type     : %-10c |", get_final_symbol_type(ELF64_ST_BIND(symtab[i].st_info), ELF64_ST_BIND(symtab[i].st_info), &shstrtab[sections_hdr[symtab[i].st_shndx].sh_name])); 
-                // printf("st_bind  : %-10d |", ELF64_ST_BIND(symtab[i].st_info)); 
-                // printf("st_shndx : %-10d |", symtab[i].st_shndx); 
-                // printf("section  : %-10s | ", &shstrtab[sections_hdr[symtab[i].st_shndx].sh_name]);
-                if (symtab[i].st_shndx) {
-                    printf("%s ",formatted_address(symtab[i].st_value));
-                }
-                else
-                    printf("                   ");
-                printf("%c ", get_final_symbol_type(ELF64_ST_BIND(symtab[i].st_info), ELF64_ST_BIND(symtab[i].st_info), &shstrtab[sections_hdr[symtab[i].st_shndx].sh_name]));
-                printf("%s\n", name);
-            }
-        }
+        handle_elf_64(file_hdr, file_data);
     }
     return 0;
 }
 
+t_flags init_flags(int ac, char **av) {
+    t_flags flags;
+
+    flags.a = 0, flags.g = 0, flags.u = 0; flags.r = 0, flags.p = 0;
+    for (int i = 1; i < ac - 1; i++) {
+        if (!ft_strncmp(av[i], "-a", 2))
+            flags.a = 1;
+        if (!ft_strncmp(av[i], "-g", 2))
+            flags.g = 1;
+        if (!ft_strncmp(av[i], "-u", 2))
+            flags.u = 1;
+        if (!ft_strncmp(av[i], "-r", 2))
+            flags.r = 1;
+        if (!ft_strncmp(av[i], "-p", 2))
+            flags.p = 1;
+    }
+    return flags;
+}
+
 int main(int ac, char **av) {
-    if (ac == 2) {
+    if (ac >= 2) {
         struct stat buf;
         uint8_t *file_data;
 
-        int fd = open(av[1], O_RDONLY, S_IRUSR);
-        x = 5;
-        printf("%d\n", x);
+        int fd = open(av[ac - 1], O_RDONLY, S_IRUSR);
         if (fd == -1) {
             ft_putstr_fd("Failed to open file\n", 2);
             close(fd);
@@ -194,7 +252,8 @@ int main(int ac, char **av) {
             close(fd);
             return 1;
         }
-    
+        flags = init_flags(ac, av);
+        // printf("a: %d g: %d u: %d r: %d p: %d", flags.a, flags.g, flags.u, flags.r, flags.p);
         file_data = mmap(NULL, buf.st_size, PROT_READ, MAP_PRIVATE, fd, 0);
         analyze_file(file_data);
         close(fd);
