@@ -72,23 +72,27 @@ int compare_strings(const char *a, const char *b) {
     return a[i] - b[j];  // Compare the rest if one string ends
 }
 
-void insertion_sort(t_symbol_data *array, int n) {
+void insertion_sort(t_symbol_data *array, int n, int reverse) {
     int i, j;
     t_symbol_data key;
+    int compare;
 
     for (i = 1; i < n; i++) {
         key = array[i];
         j = i - 1;
 
-        // Use compare_strings to compare entire strings properly
-        while (j >= 0 && compare_strings(array[j].name, key.name) > 0) {
-            array[j + 1] = array[j];
-            j = j - 1;
-        }
+        while (j >= 0) {
+            compare = compare_strings(array[j].name, key.name);
+            if (reverse ? compare < 0 : compare > 0) {
+                array[j + 1] = array[j];
+                j = j - 1;
+            }
+            else
+                break ;
+        }    
         array[j + 1] = key;
     }
 }
-
 
 int is_section(char *section_name, char **sections) {
 
@@ -139,32 +143,60 @@ char get_final_symbol_type(unsigned int type, unsigned int bind, char *section_n
     return final_type;
 }
 
+void print_symbols(char *address, char type, char *name) {
+    ft_putstr_fd(ft_strjoin(address, " "), 1);
+    ft_putchar_fd(type, 1);
+    ft_putstr_fd(ft_strjoin(" ", name), 1);
+    ft_putchar_fd('\n', 1);
+}
+
+void handle_flags(t_symbol_data *sym_data, int sym_size) {
+    if (!flags.p) {
+        if (flags.r)
+            insertion_sort(sym_data, sym_size, 1);
+        else
+            insertion_sort(sym_data, sym_size, 0);
+    }
+    for (int i = 0; i < sym_size; i++) {
+        if (flags.u) {
+            if (!ft_strncmp(sym_data[i].address, "                  ", 18)) {
+                print_symbols(sym_data[i].address, sym_data[i].type, sym_data[i].name);
+            }
+        } else {
+            print_symbols(sym_data[i].address, sym_data[i].type, sym_data[i].name);
+        }
+    }
+}
+
 void fill_symdata(t_symbol_data *sym_data, t_elf_64 elf_64) {
     int sym_size = 0;
     for (int i = 0; i < elf_64.symbols_offset; i++) {
+        unsigned int type = ELF64_ST_BIND(elf_64.symtab[i].st_info);
+        unsigned int bind = ELF64_ST_BIND(elf_64.symtab[i].st_info);
         elf_64.name = &elf_64.strtab[elf_64.symtab[i].st_name];
+        // if (!ft_strlen(elf_64.name)) {
+        //     printf("%s ", elf_64.name);
+        //     printf("%d ", type);
+        //     printf("%d \n", bind);
+        // }
         if (ft_strlen(elf_64.name) != STT_NOTYPE && ELF64_ST_TYPE(elf_64.symtab[i].st_info) != STT_FILE) {
-            if (elf_64.symtab[i].st_shndx == SHN_UNDEF) {
-                // printf("%s\n", name);
+            if (elf_64.symtab[i].st_shndx == SHN_UNDEF && flags.u) {
+                // printf("%s\n", elf_64.name);
             }
             if (elf_64.symtab[i].st_shndx) {
-                sym_data[sym_size].adress = formatted_address(elf_64.symtab[i].st_value);
+                sym_data[sym_size].address = formatted_address(elf_64.symtab[i].st_value);
             }
             else
-                sym_data[sym_size].adress = ft_strdup("                  ");
-            sym_data[sym_size].type = get_final_symbol_type(ELF64_ST_BIND(elf_64.symtab[i].st_info), ELF64_ST_BIND(elf_64.symtab[i].st_info), 
-                &elf_64.shstrtab[elf_64.sections_hdr[elf_64.symtab[i].st_shndx].sh_name]);
+                sym_data[sym_size].address = ft_strdup("                  ");
+            // &elf_64.shstrtab[elf_64.sections_hdr[elf_64.symtab[i].st_shndx].sh_name] ==> trouve la section dans laquelle se trouve le symbole
+            // st_shndx contient l'index de la section dans laquelle se trouve le symbole dans sections_hdr, une fois la section trouver, on peut avoir son nom
+            // dans shstrtab grace a sh_name qui est l index du nom de la table des sections
+            sym_data[sym_size].type = get_final_symbol_type(type, bind, &elf_64.shstrtab[elf_64.sections_hdr[elf_64.symtab[i].st_shndx].sh_name]);
             sym_data[sym_size].name = ft_strdup(elf_64.name);
             sym_size++;
         }
     }
-    insertion_sort(sym_data, sym_size);
-    for (int i = 0; i < sym_size; i++) {
-        printf("%s ", sym_data[i].adress);
-        printf("%c ", sym_data[i].type);
-        printf("%s \n", sym_data[i].name);
-
-    }
+    handle_flags(sym_data, sym_size);
 }
 
 void handle_elf_64(Elf64_Ehdr *file_hdr, u_int8_t *file_data) {
@@ -174,7 +206,7 @@ void handle_elf_64(Elf64_Ehdr *file_hdr, u_int8_t *file_data) {
     elf_64.e_shstrndx = file_hdr->e_shstrndx;
     elf_64.shstrtab = get_strtab(file_data, elf_64.sections_hdr[elf_64.e_shstrndx].sh_size, elf_64.sections_hdr[elf_64.e_shstrndx].sh_offset);
 
-    // recupere les adresses des headers symtab et strtab
+    // recupere les addresses des headers symtab et strtab
     for (int i = 0; i < file_hdr->e_shnum; i++) {
         elf_64.name = &elf_64.shstrtab[elf_64.sections_hdr[i].sh_name];
         if (!ft_strncmp(elf_64.name, ".symtab", ft_strlen(".symtab")))
@@ -182,7 +214,7 @@ void handle_elf_64(Elf64_Ehdr *file_hdr, u_int8_t *file_data) {
         else if (!ft_strncmp(elf_64.name, ".strtab", ft_strlen(".strtab")))
             elf_64.strtab_hdr = &elf_64.sections_hdr[i];
     }
-    // recupere symtab
+    // recupere la section symtab
     elf_64.symtab = (Elf64_Sym *)(file_data + elf_64.symtab_hdr->sh_offset);
     // calcul de l offset entre chaque symbole
     elf_64.symbols_offset = elf_64.symtab_hdr->sh_size / sizeof(Elf64_Sym);
@@ -195,7 +227,6 @@ void handle_elf_64(Elf64_Ehdr *file_hdr, u_int8_t *file_data) {
 }
 
 int analyze_file(uint8_t *file_data) {
-    
     Elf64_Ehdr *file_hdr;
  
     file_hdr = (Elf64_Ehdr *) file_data;
@@ -228,6 +259,10 @@ t_flags init_flags(int ac, char **av) {
         if (!ft_strncmp(av[i], "-p", 2))
             flags.p = 1;
     }
+    if (flags.p && flags.r)
+        flags.r = 0;
+    if (flags.u && flags.g)
+        flags.g = 0;
     return flags;
 }
 
@@ -259,9 +294,12 @@ int main(int ac, char **av) {
         close(fd);
     } 
     else {
-        ft_putstr_fd("Usage: ", 2);
-        ft_putstr_fd(av[0], 2);
-        ft_putstr_fd("<file>\n", 2);
+        ft_putstr_fd("Usage: ./ft_nm [option(s)] [file(s)]\n List symbols in [file(s)]\n The options are:\n", 2);
+        ft_putstr_fd("  -a,       Display debugger-only symbols\n", 1);
+        ft_putstr_fd("  -g,       Display only external symbols\n", 1);
+        ft_putstr_fd("  -p,       Do not sort the symbols\n", 1);
+        ft_putstr_fd("  -r,       Reverse the sense of the sort\n", 1);
+        ft_putstr_fd("  -u,       Display only undefined symbols\n", 1);
     }
     return 0;
 }
