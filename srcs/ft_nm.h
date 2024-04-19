@@ -16,16 +16,18 @@ typedef struct s_symbol_data {
     char type;
     char *name;
     bool   is_undefined;
-    bool   is_global;  
+    bool   is_external;  
 } t_symbol_data;
 
-typedef struct s_flags{
+typedef struct s_options{
+    char **files_name;
+    int  files_size;
     bool a; // Afficher tous les symboles, même ceux spécifiques au débogueur
-    bool g; // N'afficher que les symboles globaux.
+    bool g; // N'afficher que les symboles externes (globaux + indefinis).
     bool u; // N'afficher que les symboles non définis (ceux externes à chaque fichier objet).
     bool r; // Renverser l'ordre de tri (numérique ou alphabétique) ; commencer par le dernier.
     bool p; // Ne pas trier les symboles, uniquement les afficher dans leur ordre de rencontre.
-} t_flags;
+} t_options;
 
 typedef struct s_elf_64 {
     char *name;
@@ -40,17 +42,19 @@ typedef struct s_elf_64 {
     uint16_t e_shstrndx; // Index de la section de noms de section shstrtab
 } t_elf_64;
 
-extern t_flags flags;
+extern t_options options;
 extern char *text_sections[4];
 extern char *data_sections[6];
 extern char *ro_sections[5];
 
 int     handle_file_errors(int fd, struct stat buf);
 void    insertion_sort(t_symbol_data *array, int n, int reverse);
-void    handle_flags(t_symbol_data *sym_data, int sym_size);
+void    handle_output(t_symbol_data *sym_data, int sym_size);
 void    handle_elf_64(Elf64_Ehdr *file_hdr, u_int8_t *file_data);
 char    *formatted_address(uint64_t address);
 char    get_final_symbol_type(unsigned int type, unsigned int bind, char *section_name);
 char    *get_strtab(uint8_t *file_data, uint64_t strtab_size, Elf64_Off strtab_offset);
 int     is_upper(char c);
 void    sym_data_init(t_symbol_data *sym_data, int size);
+void    help_output();
+void    print_error(char *file_name ,char *err);

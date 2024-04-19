@@ -1,6 +1,6 @@
 #include "ft_nm.h"
 
-t_flags flags;
+t_options options;
 char *text_sections[4]  = { ".text", ".init", 
                             ".fini", NULL
                         };
@@ -103,7 +103,7 @@ char get_final_symbol_type(unsigned int type, unsigned int bind, char *section_n
     return final_type;
 }
 
-int analyze_file(uint8_t *file_data) {
+int define_elf_type(uint8_t *file_data) {
     Elf64_Ehdr *file_hdr;
  
     file_hdr = (Elf64_Ehdr *) file_data;
@@ -120,63 +120,89 @@ int analyze_file(uint8_t *file_data) {
     return 0;
 }
 
-t_flags flags_init(int ac, char **av) {
-    t_flags flags;
+int parse_args(int ac, char **av) {
+    options.files_name = malloc(sizeof(char *) * ac);
+    options.files_size = 0;
+    options.a = false, options.g = false, options.u = false; options.r = false, options.p = false;
 
-    flags.a = false, flags.g = false, flags.u = false; flags.r = false, flags.p = false;
-    for (int i = 1; i < ac - 1; i++) {
-        if (!ft_strncmp(av[i], "-a", 2))
-            flags.a = true;
-        if (!ft_strncmp(av[i], "-g", 2))
-            flags.g = true;
-        if (!ft_strncmp(av[i], "-u", 2))
-            flags.u = true;
-        if (!ft_strncmp(av[i], "-r", 2))
-            flags.r = true;
-        if (!ft_strncmp(av[i], "-p", 2))
-            flags.p = true;
+    for (int i = 1; i < ac; i++) {
+        if (av[i][0] == '-') {
+            for (size_t j = 1; j < ft_strlen(av[i]); j++) {
+                if (av[i][j] == 'a')
+                    options.a = true;
+                else if (av[i][j] == 'g')
+                    options.g = true;
+                else if (av[i][j] == 'u')
+                    options.u = true;
+                else if (av[i][j] == 'r')
+                    options.r = true;
+                else if (av[i][j] == 'p')
+                    options.p = true;
+                else {
+                    free(options.files_name);
+                    return 1;
+                }
+            }
+        } else {
+            options.files_name[options.files_size] = ft_strdup(av[i]);
+            options.files_size++;
+        }
     }
-    if (flags.p && flags.r)
-        flags.r = false;
-    if (flags.u && flags.g)
-        flags.g = false;
-    return flags;
+    if (options.p && options.r)
+        options.r = false;
+    if (options.u && options.g)
+        options.g = false;
+    // for (int i = 0; i < f_index; i++) {
+    //     printf("%s\n", options.files_name[i]);
+    // }
+    // printf("a: %d g: %d u: %d r: %d p: %d", options.a, options.g, options.u, options.r, options.p);
+    // printf("\n");
+    return 0;
 }
 
 int main(int ac, char **av) {
+    int ret_error = 0;
+
     if (ac >= 2) {
         struct stat buf;
         uint8_t *file_data;
-
-        int fd = open(av[ac - 1], O_RDONLY, S_IRUSR);
-        if (fd == -1) {
-            ft_putstr_fd("Failed to open file\n", 2);
-            close(fd);
+        if (parse_args(ac, av)) {
+            help_output();
             return 1;
         }
-        if (fstat(fd, &buf) != 0) {
-            ft_putstr_fd("couldn't get file size.\n", 2);
-            close(fd);
-            return 1;
+        printf("%d\n", options.files_size);
+        for (int i = 0; i < options.files_size; i++) {
+            int fd = open(options.files_name[i], O_RDONLY, S_IRUSR);
+            if (fd == -1) {
+               print_error(options.files_name[i], "No such file\n\n");
+               ret_error = 1;
+            }
+            else if (fstat(fd, &buf) != 0) {
+                print_error(options.files_name[i], "couldn't get file size\n\n");
+                close(fd);
+                ret_error = 1;
+            }
+            else if (S_ISDIR(buf.st_mode)) {
+                print_error(options.files_name[i],"is a directory\n\n");
+                close(fd);
+                ret_error = 1;
+            }
+            else {
+                file_data = mmap(NULL, buf.st_size, PROT_READ, MAP_PRIVATE, fd, 0);
+                if (file_data == MAP_FAILED) {
+                    print_error(options.files_name[i],"mapped memory failed\n\n");
+                    close(fd);
+                    ret_error = 1;
+                }
+                define_elf_type(file_data);
+                munmap(file_data, buf.st_size);
+                close(fd);
+            }
         }
-        if (S_ISDIR(buf.st_mode)) {
-            ft_putstr_fd("Argument must be file.\n", 2);
-            close(fd);
-            return 1;
-        }
-        flags = flags_init(ac, av);
-        // printf("a: %d g: %d u: %d r: %d p: %d", flags.a, flags.g, flags.u, flags.r, flags.p);
-        file_data = mmap(NULL, buf.st_size, PROT_READ, MAP_PRIVATE, fd, 0);
-        analyze_file(file_data);
-        close(fd);
     } 
     else {
-        ft_putstr_fd("Usage: ./ft_nm [option(s)] [file(s)]\n List symbols in [file(s)]\n The options are:\n", 2);
-        ft_putstr_fd("  -a,       Display debugger-only symbols\n", 1);
-        ft_putstr_fd("  -g,       Display only external symbols\n", 1);
-        ft_putstr_fd("  -p,       Do not sort the symbols\n", 1);
-        ft_putstr_fd("  -r,       Reverse the sense of the sort\n", 1);
-        ft_putstr_fd("  -u,       Display only undefined symbols\n", 1);
+        help_output();
+        ret_error = 1;   
     }
-    return 0;
+    return ret_error;
 }

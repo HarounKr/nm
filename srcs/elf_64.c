@@ -7,7 +7,7 @@ void fill_symdata(t_symbol_data *sym_data, t_elf_64 elf_64) {
         unsigned int bind = ELF64_ST_BIND(elf_64.symtab[i].st_info);
         elf_64.name = &elf_64.strtab[elf_64.symtab[i].st_name];
         if (ft_strlen(elf_64.name) != STT_NOTYPE && ELF64_ST_TYPE(elf_64.symtab[i].st_info) != STT_FILE) {
-            if (elf_64.symtab[i].st_shndx == SHN_UNDEF && flags.u) {
+            if (elf_64.symtab[i].st_shndx == SHN_UNDEF && options.u) {
                 // printf("%s\n", elf_64.name);
             }
             if (elf_64.symtab[i].st_shndx)
@@ -20,12 +20,13 @@ void fill_symdata(t_symbol_data *sym_data, t_elf_64 elf_64) {
             // st_shndx contient l'index de la section dans laquelle se trouve le symbole dans sections_hdr, une fois la section trouver, on peut avoir son nom
             // dans shstrtab grace a sh_name qui est l index du nom de la table des sections
             sym_data[sym_size].type = get_final_symbol_type(type, bind, &elf_64.shstrtab[elf_64.sections_hdr[elf_64.symtab[i].st_shndx].sh_name]);
-
+            if (!is_upper(sym_data[i].type))
+                sym_data[i].is_external = true;
             sym_data[sym_size].name = ft_strdup(elf_64.name);
             sym_size++;
         }
     }
-    handle_flags(sym_data, sym_size);
+    handle_output(sym_data, sym_size);
 }
 
 
