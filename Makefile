@@ -1,9 +1,14 @@
 CC=gcc
 FLAGS= -Wall -Werror -Wextra
 NAME=ft_nm
-SRC= 	srcs/ft_nm.c \
+SRC= 	srcs/ft_nm.c srcs/utils.c srcs/common.c \
+		srcs/elf_64.c \
 
-LIBFT=  libft/ft_strlen.c libft/ft_putstr_fd.c libft/ft_putchar_fd.c libft/ft_memcpy.c libft/ft_strncmp.c libft/ft_strdup.c libft/ft_isalpha.c libft/ft_tolower.c  libft/ft_strjoin.c \
+LIBFT=  libft/ft_strlen.c libft/ft_putstr_fd.c \
+		libft/ft_putchar_fd.c libft/ft_memcpy.c \
+		libft/ft_strncmp.c libft/ft_strdup.c \
+		libft/ft_isalpha.c libft/ft_tolower.c \
+		libft/ft_strjoin.c libft/ft_calloc.c \
 
 OBJ = $(SRC:.c=.o) $(LIBFT:.c=.o)
 all: $(NAME)

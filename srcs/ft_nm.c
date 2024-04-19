@@ -1,9 +1,16 @@
 #include "ft_nm.h"
 
-// int handle_file_errors(int fd, struct stat buf) {
-    
-//     return 0;
-// }
+t_flags flags;
+char *text_sections[4]  = { ".text", ".init", 
+                            ".fini", NULL
+                        };
+char *data_sections[6] = {  ".data", ".init_array", 
+                            ".fini_array", ".dynamic",
+                            ".got", NULL,
+                        };
+char *ro_sections[5] = {    ".rodata", ".eh_frame", 
+                            ".eh_frame_hdr", ".note.ABI-tag", NULL,
+                        };
 
 char *formatted_address(uint64_t address) {
     char *formatted_address = malloc(sizeof(char) * 19); // "0000000000004010" + '\0'
@@ -22,7 +29,6 @@ char *formatted_address(uint64_t address) {
         address /= 16;
         --i;
     }
-
     return formatted_address;
 }
 
@@ -45,52 +51,6 @@ const char *get_elf_symbol_type(unsigned int type) {
         case STT_COMMON:   return "COMMON";
         case STT_TLS:      return "TLS";
         default:           return "<unknown>";
-    }
-}
-
-int compare_strings(const char *a, const char *b) {
-    int i = 0, j = 0;
-    while (a[i] != '\0' && !ft_isalpha(a[i])) 
-        i++;  // Aller au premier caractère alphabétique
-    while (b[j] != '\0' && !ft_isalpha(b[j])) 
-        j++;  // Aller au premier caractère alphabétique
-
-    while (a[i] != '\0' && b[j] != '\0') {
-        char charA = ft_tolower(a[i]);
-        char charB = ft_tolower(b[j]);
-
-        if (charA != charB)
-            return charA - charB;
-
-        i++;
-        j++;
-        while (a[i] != '\0' && !ft_isalpha(a[i])) 
-            i++;
-        while (b[j] != '\0' && !ft_isalpha(b[j]))
-            j++;
-    }
-    return a[i] - b[j];  // Compare the rest if one string ends
-}
-
-void insertion_sort(t_symbol_data *array, int n, int reverse) {
-    int i, j;
-    t_symbol_data key;
-    int compare;
-
-    for (i = 1; i < n; i++) {
-        key = array[i];
-        j = i - 1;
-
-        while (j >= 0) {
-            compare = compare_strings(array[j].name, key.name);
-            if (reverse ? compare < 0 : compare > 0) {
-                array[j + 1] = array[j];
-                j = j - 1;
-            }
-            else
-                break ;
-        }    
-        array[j + 1] = key;
     }
 }
 
@@ -143,89 +103,6 @@ char get_final_symbol_type(unsigned int type, unsigned int bind, char *section_n
     return final_type;
 }
 
-void print_symbols(char *address, char type, char *name) {
-    ft_putstr_fd(ft_strjoin(address, " "), 1);
-    ft_putchar_fd(type, 1);
-    ft_putstr_fd(ft_strjoin(" ", name), 1);
-    ft_putchar_fd('\n', 1);
-}
-
-void handle_flags(t_symbol_data *sym_data, int sym_size) {
-    if (!flags.p) {
-        if (flags.r)
-            insertion_sort(sym_data, sym_size, 1);
-        else
-            insertion_sort(sym_data, sym_size, 0);
-    }
-    for (int i = 0; i < sym_size; i++) {
-        if (flags.u) {
-            if (!ft_strncmp(sym_data[i].address, "                  ", 18)) {
-                print_symbols(sym_data[i].address, sym_data[i].type, sym_data[i].name);
-            }
-        } else {
-            print_symbols(sym_data[i].address, sym_data[i].type, sym_data[i].name);
-        }
-    }
-}
-
-void fill_symdata(t_symbol_data *sym_data, t_elf_64 elf_64) {
-    int sym_size = 0;
-    for (int i = 0; i < elf_64.symbols_offset; i++) {
-        unsigned int type = ELF64_ST_BIND(elf_64.symtab[i].st_info);
-        unsigned int bind = ELF64_ST_BIND(elf_64.symtab[i].st_info);
-        elf_64.name = &elf_64.strtab[elf_64.symtab[i].st_name];
-        // if (!ft_strlen(elf_64.name)) {
-        //     printf("%s ", elf_64.name);
-        //     printf("%d ", type);
-        //     printf("%d \n", bind);
-        // }
-        if (ft_strlen(elf_64.name) != STT_NOTYPE && ELF64_ST_TYPE(elf_64.symtab[i].st_info) != STT_FILE) {
-            if (elf_64.symtab[i].st_shndx == SHN_UNDEF && flags.u) {
-                // printf("%s\n", elf_64.name);
-            }
-            if (elf_64.symtab[i].st_shndx) {
-                sym_data[sym_size].address = formatted_address(elf_64.symtab[i].st_value);
-            }
-            else
-                sym_data[sym_size].address = ft_strdup("                  ");
-            // &elf_64.shstrtab[elf_64.sections_hdr[elf_64.symtab[i].st_shndx].sh_name] ==> trouve la section dans laquelle se trouve le symbole
-            // st_shndx contient l'index de la section dans laquelle se trouve le symbole dans sections_hdr, une fois la section trouver, on peut avoir son nom
-            // dans shstrtab grace a sh_name qui est l index du nom de la table des sections
-            sym_data[sym_size].type = get_final_symbol_type(type, bind, &elf_64.shstrtab[elf_64.sections_hdr[elf_64.symtab[i].st_shndx].sh_name]);
-            sym_data[sym_size].name = ft_strdup(elf_64.name);
-            sym_size++;
-        }
-    }
-    handle_flags(sym_data, sym_size);
-}
-
-void handle_elf_64(Elf64_Ehdr *file_hdr, u_int8_t *file_data) {
-    t_elf_64 elf_64;
-
-    elf_64.sections_hdr = (Elf64_Shdr *) (file_data + file_hdr->e_shoff);
-    elf_64.e_shstrndx = file_hdr->e_shstrndx;
-    elf_64.shstrtab = get_strtab(file_data, elf_64.sections_hdr[elf_64.e_shstrndx].sh_size, elf_64.sections_hdr[elf_64.e_shstrndx].sh_offset);
-
-    // recupere les addresses des headers symtab et strtab
-    for (int i = 0; i < file_hdr->e_shnum; i++) {
-        elf_64.name = &elf_64.shstrtab[elf_64.sections_hdr[i].sh_name];
-        if (!ft_strncmp(elf_64.name, ".symtab", ft_strlen(".symtab")))
-            elf_64.symtab_hdr = &elf_64.sections_hdr[i];
-        else if (!ft_strncmp(elf_64.name, ".strtab", ft_strlen(".strtab")))
-            elf_64.strtab_hdr = &elf_64.sections_hdr[i];
-    }
-    // recupere la section symtab
-    elf_64.symtab = (Elf64_Sym *)(file_data + elf_64.symtab_hdr->sh_offset);
-    // calcul de l offset entre chaque symbole
-    elf_64.symbols_offset = elf_64.symtab_hdr->sh_size / sizeof(Elf64_Sym);
-    elf_64.strtab = get_strtab(file_data, elf_64.strtab_hdr->sh_size, elf_64.strtab_hdr->sh_offset);
-    t_symbol_data *sym_data = malloc(sizeof(t_symbol_data) * elf_64.symbols_offset);
-    if (sym_data == NULL)
-        return ;
-    fill_symdata(sym_data, elf_64);
-    
-}
-
 int analyze_file(uint8_t *file_data) {
     Elf64_Ehdr *file_hdr;
  
@@ -243,26 +120,26 @@ int analyze_file(uint8_t *file_data) {
     return 0;
 }
 
-t_flags init_flags(int ac, char **av) {
+t_flags flags_init(int ac, char **av) {
     t_flags flags;
 
-    flags.a = 0, flags.g = 0, flags.u = 0; flags.r = 0, flags.p = 0;
+    flags.a = false, flags.g = false, flags.u = false; flags.r = false, flags.p = false;
     for (int i = 1; i < ac - 1; i++) {
         if (!ft_strncmp(av[i], "-a", 2))
-            flags.a = 1;
+            flags.a = true;
         if (!ft_strncmp(av[i], "-g", 2))
-            flags.g = 1;
+            flags.g = true;
         if (!ft_strncmp(av[i], "-u", 2))
-            flags.u = 1;
+            flags.u = true;
         if (!ft_strncmp(av[i], "-r", 2))
-            flags.r = 1;
+            flags.r = true;
         if (!ft_strncmp(av[i], "-p", 2))
-            flags.p = 1;
+            flags.p = true;
     }
     if (flags.p && flags.r)
-        flags.r = 0;
+        flags.r = false;
     if (flags.u && flags.g)
-        flags.g = 0;
+        flags.g = false;
     return flags;
 }
 
@@ -287,7 +164,7 @@ int main(int ac, char **av) {
             close(fd);
             return 1;
         }
-        flags = init_flags(ac, av);
+        flags = flags_init(ac, av);
         // printf("a: %d g: %d u: %d r: %d p: %d", flags.a, flags.g, flags.u, flags.r, flags.p);
         file_data = mmap(NULL, buf.st_size, PROT_READ, MAP_PRIVATE, fd, 0);
         analyze_file(file_data);
