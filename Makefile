@@ -1,7 +1,7 @@
 CC=gcc
 FLAGS= -Wall -Werror -Wextra
 NAME=ft_nm
-SRC= 	srcs/ft_nm.c srcs/utils.c srcs/common.c \
+SRC= 	srcs/ft_nm.c srcs/utils.c srcs/output.c \
 		srcs/elf_64.c \
 
 LIBFT=  libft/ft_strlen.c libft/ft_putstr_fd.c \

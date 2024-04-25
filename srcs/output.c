@@ -14,6 +14,9 @@ void handle_output(t_symbol_data *sym_data, int sym_size) {
         else
             insertion_sort(sym_data, sym_size, 0);
     }
+    ft_putchar_fd('\n', 1);
+    ft_putstr_fd(options.file_name, 1);
+    ft_putstr_fd(":\n", 1);
     for (int i = 0; i < sym_size; i++) {
         if (options.u) {
             if (sym_data[i].is_undefined) {
@@ -43,14 +46,4 @@ void print_error(char *file_name ,char *err) {
     ft_putstr_fd("ft_nm: ", 2);
     ft_putstr_fd(file_name, 2);
     ft_putstr_fd(err, 2);
-}
-
-void sym_data_init(t_symbol_data *sym_data, int size) {
-    for (int i = 0; i < size; i++) {
-        sym_data[i].address = NULL;
-        sym_data[i].type = 0;
-        sym_data[i].name = NULL;
-        sym_data[i].is_undefined = false;
-        sym_data[i].is_external = false;
-    }
 }

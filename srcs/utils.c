@@ -1,5 +1,15 @@
 #include "ft_nm.h"
 
+void sym_data_init(t_symbol_data *sym_data, int size) {
+    for (int i = 0; i < size; i++) {
+        sym_data[i].address = NULL;
+        sym_data[i].type = 0;
+        sym_data[i].name = NULL;
+        sym_data[i].is_undefined = false;
+        sym_data[i].is_external = false;
+    }
+}
+
 int compare_strings(const char *a, const char *b) {
     int i = 0, j = 0;
     while (a[i] != '\0' && !ft_isalpha(a[i])) 

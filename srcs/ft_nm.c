@@ -122,7 +122,7 @@ int define_elf_type(uint8_t *file_data) {
 
 int parse_args(int ac, char **av) {
     options.files_name = malloc(sizeof(char *) * ac);
-    options.files_size = 0;
+    options.files_nb = 0;
     options.a = false, options.g = false, options.u = false; options.r = false, options.p = false;
 
     for (int i = 1; i < ac; i++) {
@@ -144,8 +144,8 @@ int parse_args(int ac, char **av) {
                 }
             }
         } else {
-            options.files_name[options.files_size] = ft_strdup(av[i]);
-            options.files_size++;
+            options.files_name[options.files_nb] = ft_strdup(av[i]);
+            options.files_nb++;
         }
     }
     if (options.p && options.r)
@@ -170,8 +170,7 @@ int main(int ac, char **av) {
             help_output();
             return 1;
         }
-        printf("%d\n", options.files_size);
-        for (int i = 0; i < options.files_size; i++) {
+        for (int i = 0; i < options.files_nb; i++) {
             int fd = open(options.files_name[i], O_RDONLY, S_IRUSR);
             if (fd == -1) {
                print_error(options.files_name[i], "No such file\n\n");
@@ -194,8 +193,10 @@ int main(int ac, char **av) {
                     close(fd);
                     ret_error = 1;
                 }
+                options.file_name = ft_strdup(options.files_name[i]);
                 define_elf_type(file_data);
                 munmap(file_data, buf.st_size);
+                free(options.file_name);
                 close(fd);
             }
         }
