@@ -12,26 +12,41 @@ void sym_data_init(t_symbol_data *sym_data, int size) {
 
 int compare_strings(const char *a, const char *b) {
     int i = 0, j = 0;
-    while (a[i] != '\0' && !ft_isalpha(a[i])) 
-        i++;  // Aller au premier caractère alphabétique
-    while (b[j] != '\0' && !ft_isalpha(b[j])) 
-        j++;  // Aller au premier caractère alphabétique
+    int underscore_count_a = 0, underscore_count_b = 0;
 
-    while (a[i] != '\0' && b[j] != '\0') {
-        char charA = ft_tolower(a[i]);
-        char charB = ft_tolower(b[j]);
+    // Compter les underscores au début de chaque chaîne
+    while (a[i] == '_') {
+        underscore_count_a++;
+        i++;
+    }
+    while (b[j] == '_') {
+        underscore_count_b++;
+        j++;
+    }
+    // Aller au premier caractère alphabétique
+    while (a[i] && !ft_isalpha(a[i])) 
+        i++;
+    while (b[j] && !ft_isalpha(b[j]))
+        j++;
 
-        if (charA != charB)
-            return charA - charB;
+    // Comparaison alphabétique des chaînes en ignorant les caractères non alphabétiques
+    while (a[i] && b[j]) {
+        if (ft_tolower(a[i]) != ft_tolower(b[j]))
+            return ft_tolower(a[i]) - ft_tolower(b[j]);
 
         i++;
         j++;
-        while (a[i] != '\0' && !ft_isalpha(a[i])) 
+        while (a[i] && !ft_isalpha(a[i])) 
             i++;
-        while (b[j] != '\0' && !ft_isalpha(b[j]))
+        while (b[j] && !ft_isalpha(b[j]))
             j++;
     }
-    return a[i] - b[j];  // Compare the rest if one string ends
+
+    // Si les chaînes sont identiques, comparer les derniers caractères
+    if (a[i] == b[j])
+        return underscore_count_b - underscore_count_a; // Plus d'underscores => priorité plus élevée
+
+    return a[i] - b[j];
 }
 
 void insertion_sort(t_symbol_data *array, int n, int reverse) {

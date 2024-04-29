@@ -1,10 +1,10 @@
 #include "ft_nm.h"
 
 t_options options;
-char *text_sections[4]  = { ".text", ".init", 
+char *text_sections[5]  = { ".text", ".init", ".init_array" 
                             ".fini", NULL
                         };
-char *data_sections[6] = {  ".data", ".init_array", 
+char *data_sections[5] = {  ".data", 
                             ".fini_array", ".dynamic",
                             ".got", NULL,
                         };
@@ -12,17 +12,30 @@ char *ro_sections[5] = {    ".rodata", ".eh_frame",
                             ".eh_frame_hdr", ".note.ABI-tag", NULL,
                         };
 
+const char *get_elf_symbol_type(unsigned int type) {
+    switch (type) {
+        case STT_NOTYPE:   return "NOTYPE";
+        case STT_OBJECT:   return "OBJECT";
+        case STT_FUNC:     return "FUNC";
+        case STT_SECTION:  return "SECTION";
+        case STT_FILE:     return "FILE";
+        case STT_COMMON:   return "COMMON";
+        case STT_TLS:      return "TLS";
+        default:           return "<unknown>";
+    }
+}
+
 char *formatted_address(uint64_t address) {
-    char *formatted_address = malloc(sizeof(char) * 19); // "0000000000004010" + '\0'
+    char *formatted_address = malloc(sizeof(char) * 17); // "0000000000004010" + '\0'
     if (!formatted_address)
         return NULL;
 
-    for (int i = 0; i < 19; i++) {
+    for (int i = 0; i < 16; i++) {
         formatted_address[i] = '0';
     }
-    formatted_address[18] = '\0';
+    formatted_address[16] = '\0';
 
-    int i = 17;
+    int i = 15;
     while (address > 0 && i >= 0) {
         int digit = address % 16;
         formatted_address[i] = digit < 10 ? '0' + digit : 'a' + digit - 10;
@@ -41,29 +54,20 @@ char *get_strtab(uint8_t *file_data, uint64_t strtab_size, Elf64_Off strtab_offs
     return strtab;
 }
 
-const char *get_elf_symbol_type(unsigned int type) {
-    switch (type) {
-        case STT_NOTYPE:   return "NOTYPE";
-        case STT_OBJECT:   return "OBJECT";
-        case STT_FUNC:     return "FUNC";
-        case STT_SECTION:  return "SECTION";
-        case STT_FILE:     return "FILE";
-        case STT_COMMON:   return "COMMON";
-        case STT_TLS:      return "TLS";
-        default:           return "<unknown>";
-    }
-}
-
 int is_section(char *section_name, char **sections) {
 
     for (int i = 0; sections[i] != NULL; i++) {
-        if (!ft_strncmp(section_name, sections[i], ft_strlen(sections[i])))
+        if (!ft_strncmp(section_name, sections[i], ft_strlen(section_name)))
             return 0;
     }
     return 1;
 }
 
 char get_final_symbol_type(unsigned int type, unsigned int bind, char *section_name) {
+    // printf("type  name : %-10s | ", get_elf_symbol_type(type));
+    printf("type  : %-10d | ", type);
+    printf("bind  : %-10d | ", bind);
+    printf("section  : %-30s |", section_name);
     char final_type = '?';
     
     if (bind == STB_WEAK) {

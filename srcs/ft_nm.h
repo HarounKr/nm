@@ -10,6 +10,7 @@
 #include <unistd.h>
 #include <elf.h>
 #include <stdbool.h>
+#include <string.h>
 
 typedef struct s_symbol_data {
     char *address;
@@ -44,8 +45,8 @@ typedef struct s_elf_64 {
 } t_elf_64;
 
 extern t_options options;
-extern char *text_sections[4];
-extern char *data_sections[6];
+extern char *text_sections[5];
+extern char *data_sections[5];
 extern char *ro_sections[5];
 
 int     handle_file_errors(int fd, struct stat buf);
