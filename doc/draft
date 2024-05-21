@@ -1,4 +1,4 @@
 readelf --file-header ft_nm
 readelf --section-headers ft_nm
 dd if=/dev/urandom of=test bs=1 count=1 seek=$((0x3F)) conv=notrunc
-
+readelf -s tester/elf64/weak | grep -E "weakVar|data_start"

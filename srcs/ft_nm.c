@@ -1,16 +1,10 @@
 #include "ft_nm.h"
 
 t_options options;
-char *text_sections[5]  = { ".text", ".init", ".init_array" 
-                            ".fini", NULL
-                        };
-char *data_sections[5] = {  ".data", 
-                            ".fini_array", ".dynamic",
-                            ".got", NULL,
-                        };
-char *ro_sections[5] = {    ".rodata", ".eh_frame", 
-                            ".eh_frame_hdr", ".note.ABI-tag", NULL,
-                        };
+char *text_sections[4]  = { ".text", ".init", ".fini", NULL };
+char *data_sections[6] = {  ".data", ".fini_array", ".init_array", ".dynamic", ".got", NULL,};
+char *ro_sections[5] = { ".rodata", ".eh_frame",  ".eh_frame_hdr",".note.ABI-tag", NULL,};
+char *weak_sections[4] = { ".rodata", ".data", ".bss", NULL };
 
 const char *get_elf_symbol_type(unsigned int type) {
     switch (type) {
@@ -55,26 +49,29 @@ char *get_strtab(uint8_t *file_data, uint64_t strtab_size, Elf64_Off strtab_offs
 }
 
 int is_section(char *section_name, char **sections) {
-
     for (int i = 0; sections[i] != NULL; i++) {
+        // printf("sections[i] : %s\n", sections[i]);
         if (!ft_strncmp(section_name, sections[i], ft_strlen(section_name)))
             return 0;
     }
     return 1;
 }
 
-char get_final_symbol_type(unsigned int type, unsigned int bind, char *section_name) {
+char get_final_symbol_type(unsigned int type, unsigned int bind, unsigned int size, char *section_name) {
     // printf("type  name : %-10s | ", get_elf_symbol_type(type));
     printf("type  : %-10d | ", type);
     printf("bind  : %-10d | ", bind);
     printf("section  : %-30s |", section_name);
+    (void)size;
     char final_type = '?';
-    
+
     if (bind == STB_WEAK) {
         if (!ft_strlen(section_name))
             final_type = 'w';
-        else
+        else if (is_section(section_name, weak_sections))
             final_type = 'W';
+        else
+            final_type = 'V';
     } else if (bind == STB_GLOBAL && !ft_strlen(section_name))
         final_type = 'U';
     else {
@@ -102,7 +99,6 @@ char get_final_symbol_type(unsigned int type, unsigned int bind, char *section_n
             else
                 final_type = 'R';            
         } 
-        // U a faire, V v 
     }
     return final_type;
 }

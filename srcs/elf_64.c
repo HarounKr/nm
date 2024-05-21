@@ -3,8 +3,9 @@
 void fill_symdata(t_symbol_data *sym_data, t_elf_64 elf_64) {
     int sym_size = 0;
     for (int i = 0; i < elf_64.symbols_offset; i++) {
-        unsigned int type = ELF64_ST_BIND(elf_64.symtab[i].st_info);
+        unsigned int type = ELF64_ST_TYPE(elf_64.symtab[i].st_info);
         unsigned int bind = ELF64_ST_BIND(elf_64.symtab[i].st_info);
+        unsigned int size = elf_64.symtab[i].st_size;
         elf_64.name = &elf_64.strtab[elf_64.symtab[i].st_name];
         // printf("st_info  : %-10s | ", get_elf_symbol_type(ELF64_ST_TYPE(elf_64.symtab[i].st_info)));
         // printf("Type     : %-10c |", get_final_symbol_type(ELF64_ST_BIND(elf_64.symtab[i].st_info), ELF64_ST_BIND(elf_64.symtab[i].st_info), &elf_64.shstrtab[elf_64.sections_hdr[elf_64.symtab[i].st_shndx].sh_name]));
@@ -24,8 +25,9 @@ void fill_symdata(t_symbol_data *sym_data, t_elf_64 elf_64) {
             // st_shndx contient l'index de la section dans laquelle se trouve le symbole dans sections_hdr, une fois la section trouver, on peut avoir son nom
             // dans shstrtab grace a sh_name qui est l index du nom de la table des sections
             printf("sym Name : %-40s |", elf_64.name);
-            // printf("st_shndx : %-10d |", elf_64.symtab[i].st_shndx);
-            sym_data[sym_size].type = get_final_symbol_type(type, bind, &elf_64.shstrtab[elf_64.sections_hdr[elf_64.symtab[i].st_shndx].sh_name]);
+            printf("st_shndx : %-10d |", elf_64.symtab[i].st_shndx);
+            printf("st_size : %-10d |", size);
+            sym_data[sym_size].type = get_final_symbol_type(type, bind, size, &elf_64.shstrtab[elf_64.sections_hdr[elf_64.symtab[i].st_shndx].sh_name]);
             printf("sym type : %-10c |\n", sym_data[sym_size].type);
             if (!is_upper(sym_data[i].type))
                 sym_data[i].is_external = true;
@@ -33,7 +35,7 @@ void fill_symdata(t_symbol_data *sym_data, t_elf_64 elf_64) {
             sym_size++;
         }
     }
-    // handle_output(sym_data, sym_size);
+    handle_output(sym_data, sym_size);
 }
 
 

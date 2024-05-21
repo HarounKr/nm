@@ -2,6 +2,7 @@
 #include <stdio.h>
 
 __attribute__((weak)) int weakVar = 5;
+__attribute__((weak)) const int weakConstVar = 6;
 __attribute__((weak)) int weakFunction() {
     return weakVar;
 }

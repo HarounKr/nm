@@ -45,16 +45,17 @@ typedef struct s_elf_64 {
 } t_elf_64;
 
 extern t_options options;
-extern char *text_sections[5];
-extern char *data_sections[5];
+extern char *text_sections[4];
+extern char *data_sections[6];
 extern char *ro_sections[5];
+extern char *weak_sections[4];
 
 int     handle_file_errors(int fd, struct stat buf);
 void    insertion_sort(t_symbol_data *array, int n, int reverse);
 void    handle_output(t_symbol_data *sym_data, int sym_size);
 void    handle_elf_64(Elf64_Ehdr *file_hdr, u_int8_t *file_data);
 char    *formatted_address(uint64_t address);
-char    get_final_symbol_type(unsigned int type, unsigned int bind, char *section_name);
+char    get_final_symbol_type(unsigned int type, unsigned int bind, unsigned int size, char *section_name);
 char    *get_strtab(uint8_t *file_data, uint64_t strtab_size, Elf64_Off strtab_offset);
 int     is_upper(char c);
 void    sym_data_init(t_symbol_data *sym_data, int size);
