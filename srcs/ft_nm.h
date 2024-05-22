@@ -60,4 +60,4 @@ char    *get_strtab(uint8_t *file_data, uint64_t strtab_size, Elf64_Off strtab_o
 int     is_upper(char c);
 void    sym_data_init(t_symbol_data *sym_data, int size);
 void    help_output();
-void    print_error(char *file_name ,char *err);
+void    print_error(char *file_name ,char *err, char *err_type);

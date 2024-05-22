@@ -1,4 +1,4 @@
-CC=gcc
+CC=gcc 
 FLAGS= -Wall -Werror -Wextra
 NAME=ft_nm
 SRC= 	srcs/ft_nm.c srcs/utils.c srcs/output.c \
@@ -27,3 +27,5 @@ fclean: clean
 	rm -f $(NAME)
 
 re: fclean all
+
+# -fsanitize=address

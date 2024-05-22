@@ -24,16 +24,16 @@ def run_diff(file1, file2):
     except Exception as e:
         print(f"Error running diff on {file1} and {file2}: {e}")
 
-def main(args):
+def main(args, opt):
     for directory in args.directories:
         if os.path.exists(directory):
             files = [os.path.join(directory, f) for f in os.listdir(directory) if os.path.isfile(os.path.join(directory, f))]
             if files:
                 ft_nm_output_file = os.path.join(directory, "ft_nm_output.txt")
                 nm_output_file = os.path.join(directory, "nm_output.txt")
-                
-                run_command([args.ft_nm] + args.ft_nm_options, files, ft_nm_output_file)
-                run_command([args.nm] + args.nm_options, files, nm_output_file)
+                print(opt)
+                run_command([args.ft_nm] + opt, files, ft_nm_output_file)
+                run_command([args.nm] + opt, files, nm_output_file)
                 
                 run_diff(ft_nm_output_file, nm_output_file)
             else:
@@ -46,7 +46,7 @@ if __name__ == "__main__":
     parser.add_argument('directories', nargs='+', help='List of directories containing files to test')
     parser.add_argument('--ft_nm', type=str, required=True, help='Path to the custom nm executable')
     parser.add_argument('--nm', type=str, required=True, help='Path to the standard nm executable')
-    parser.add_argument('--ft_nm_options', nargs='*', default=[], help='Options to pass to custom nm')
-    parser.add_argument('--nm_options', nargs='*', default=[], help='Options to pass to standard nm')
-    args = parser.parse_args()
-    main(args)
+    # parser.add_argument('-opt', nargs=argparse.REMAINDER, help='Options to pass to standard nm and ft_nm')
+    args, unknown_args = parser.parse_known_args()
+    # args = parser.parse_args()
+    main(args, unknown_args)

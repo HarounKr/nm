@@ -17,7 +17,7 @@ int	ft_strncmp(const char *dest, const char *src, size_t n)
 	size_t			i;
 	unsigned char	*d;
 	unsigned char	*s;
-
+	
 	i = 0;
 	d = (unsigned char *)dest;
 	s = (unsigned char *)src;
