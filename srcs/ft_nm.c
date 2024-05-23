@@ -100,18 +100,68 @@ char get_final_symbol_type(unsigned int type, unsigned int bind, unsigned int si
     return '?';
 }
 
-int define_elf_type(uint8_t *file_data, char *filename) {
-    Elf64_Ehdr *file_hdr;
- 
-    file_hdr = (Elf64_Ehdr *) file_data;
-    if (file_hdr->e_ident[EI_MAG0] != ELFMAG0 || file_hdr->e_ident[EI_MAG1] != ELFMAG1 ||
-            file_hdr->e_ident[EI_MAG2] != ELFMAG2 || file_hdr->e_ident[EI_MAG3] != ELFMAG3) {
-        print_error(filename, ": file format not recognized\n", NULL);
-        return 1;
+static int handle_elf_errors(Elf64_Ehdr *file_hdr, uint8_t *file_data, char *filename, long int st_size) {
+    Elf64_Ehdr *hdr64;
+    Elf32_Ehdr* hdr32;
+    Elf64_Off shoff;
+    Elf64_Off phoff;
+    uint16_t shnum;
+    unsigned long hdr_size = 0;
+    
+    if (file_hdr->e_ident[EI_CLASS] == ELFCLASS64) {
+        hdr64 = (Elf64_Ehdr*) file_data;
+        shoff = hdr64->e_shoff;
+        phoff = hdr64->e_phoff;
+        shnum = hdr64->e_shnum;
+        hdr_size = sizeof(Elf64_Ehdr);
     } else if (file_hdr->e_ident[EI_CLASS] == ELFCLASS32) {
-        ft_putstr_fd("ELF 32\n", 2);
-    } else if (file_hdr->e_ident[EI_CLASS] == ELFCLASS64) {
-        handle_elf_64(file_hdr, file_data);
+        hdr32 = (Elf32_Ehdr*) file_data;
+        shoff = hdr32->e_shoff;
+        phoff = hdr32->e_phoff;
+        shnum = hdr32->e_shnum;
+        hdr_size = sizeof(Elf32_Ehdr);
+    } else {
+        return print_error(filename, ": file format not recognized\n", NULL, false);
+    }
+    if (phoff == 0 || shoff == 0 || shnum == 0 || shoff < hdr_size || shoff >= (Elf64_Off) st_size)
+            return print_error(filename, ": file format not recognized 2\n", NULL, false);
+    else if (file_hdr->e_ident[EI_DATA] != ELFDATA2LSB && file_hdr->e_ident[EI_DATA] != ELFDATA2MSB)
+        return print_error(filename, ": file format not recognized 3\n", NULL, false);
+    else if (file_hdr->e_ident[EI_VERSION] != EV_CURRENT)
+        return print_error(filename, ": file format not recognized 4\n", NULL, false);
+
+    return 0;
+}
+
+int define_elf_type(uint8_t *file_data, char *filename, long int st_size) {
+    Elf64_Ehdr *file_hdr;
+    file_hdr = (Elf64_Ehdr *) file_data;
+    // printf("%ld\n", file_hdr->e_phoff);
+    // printf("%ld\n", file_hdr->e_shoff);
+    // printf("%d\n\n", file_hdr->e_shnum);
+
+    //  printf("%d\n", file_hdr_32->e_phoff);
+    // printf("%d\n", file_hdr_32->e_shoff);
+    // printf("%d\n", file_hdr_32->e_shnum);
+    // // printf("%d\n", file_hdr->e_type);
+    // // printf("%s\n", file_hdr->e_ident);
+    // printf("size: %ld\n",st_size);
+    // printf("Taille de l'entête ELF32 : %lu octets\n", sizeof(Elf32_Ehdr));
+    // printf("Taille de l'entête ELF64 : %lu octets\n", sizeof(Elf64_Ehdr));
+    if (file_hdr->e_ident[EI_MAG0] != ELFMAG0 || file_hdr->e_ident[EI_MAG1] != ELFMAG1 ||
+            file_hdr->e_ident[EI_MAG2] != ELFMAG2 || file_hdr->e_ident[EI_MAG3] != ELFMAG3)
+        return print_error(filename, ": file format not recognized 1\n", NULL, false);
+    else if (file_hdr->e_ident[EI_CLASS] == ELFCLASS32) {
+        printf("ca va dans le 32\n");
+        if (handle_elf_errors(file_hdr, file_data, filename, st_size))
+            return 1;
+        // Elf32_Ehdr *file_hdr_32 = (Elf32_Ehdr *) file_data;
+        // return handle_elf_32(file_hdr_32, file_data);
+    } 
+    else if (file_hdr->e_ident[EI_CLASS] == ELFCLASS64) {
+        if (handle_elf_errors(file_hdr, file_data, filename, st_size))
+            return 1;
+        return handle_elf_64(file_hdr, file_data);
     }
     return 0;
 }
@@ -161,29 +211,24 @@ int main(int ac, char **av) {
         }
         for (int i = 0; i < options.files_nb; i++) {
             int fd = open(options.files_name[i], O_RDONLY, S_IRUSR);
-            if (fd == -1) {
-               print_error(options.files_name[i], " No such file\n", NULL);
-               return 1;
-            }
+            if (fd == -1)
+               return print_error(options.files_name[i], " No such file\n", NULL, true);
             else if (fstat(fd, &buf) != 0) {
-                print_error(options.files_name[i], " couldn't get file size\n", NULL);
                 close(fd);
-                return 1;
+                return print_error(options.files_name[i], " couldn't get file size\n", NULL, true);
             }
             else if (S_ISDIR(buf.st_mode)) {
-                print_error(options.files_name[i], " is a directory\n", "Warning");
                 close(fd);
-                return 1;
+                return print_error(options.files_name[i], " is a directory\n", "Warning", true);
             }
             else {
                 file_data = mmap(NULL, buf.st_size, PROT_READ, MAP_PRIVATE, fd, 0);
                 if (file_data == MAP_FAILED) {
-                    print_error(options.files_name[i],"mapped memory failed\n", NULL);
                     close(fd);
-                    return 1;
+                    return print_error(options.files_name[i],"mapped memory failed\n", NULL, true);
                 }
                 options.file_name = ft_strdup(options.files_name[i]);
-                define_elf_type(file_data, options.files_name[i]);
+                define_elf_type(file_data, options.files_name[i], buf.st_size);
                 munmap(file_data, buf.st_size);
                 free(options.file_name);
                 options.file_name = NULL;

@@ -46,12 +46,16 @@ void help_output() {
     ft_putstr_fd("  -u,       Display only undefined symbols\n", 1);
 }
 
-void print_error(char *file_name ,char *err, char *err_type) {
+int print_error(char *file_name ,char *err, char *err_type, bool is_quote) {
     ft_putstr_fd("ft_nm: ", 2);
     if (err_type && !ft_strncmp(err_type, "Warning", ft_strlen(err_type)))
         ft_putstr_fd("Warning: ", 2);
-    ft_putchar_fd(39, 2);
+    if (is_quote)
+        ft_putchar_fd(39, 2);
     ft_putstr_fd(file_name, 2);
-    ft_putchar_fd(39, 2);
+    if (is_quote)
+        ft_putchar_fd(39, 2);
     ft_putstr_fd(err, 2);
+    
+    return 1;
 }

@@ -1,6 +1,6 @@
 #include "ft_nm.h"
 
-void fill_symdata(t_symbol_data *sym_data, t_elf_64 elf_64) {
+static void fill_symdata(t_symbol_data *sym_data, t_elf_64 elf_64) {
     int sym_size = 0;
     for (int i = 0; i < elf_64.symbols_offset; i++) {
         unsigned int type = ELF64_ST_TYPE(elf_64.symtab[i].st_info);
@@ -46,20 +46,29 @@ void fill_symdata(t_symbol_data *sym_data, t_elf_64 elf_64) {
     sym_data = NULL;
 }
 
-void handle_elf_64(Elf64_Ehdr *file_hdr, u_int8_t *file_data) {
+int handle_elf_64(Elf64_Ehdr *file_hdr, u_int8_t *file_data) {
     t_elf_64 elf_64;
+    bool is_symtab = false;
+    bool is_strtab = false;
 
-    elf_64.sections_hdr = (Elf64_Shdr *) (file_data + file_hdr->e_shoff);
     elf_64.e_shstrndx = file_hdr->e_shstrndx;
+    elf_64.sections_hdr = (Elf64_Shdr *) (file_data + file_hdr->e_shoff);
     elf_64.shstrtab = get_strtab(file_data, elf_64.sections_hdr[elf_64.e_shstrndx].sh_size, elf_64.sections_hdr[elf_64.e_shstrndx].sh_offset);
 
     // recupere les addresses des headers symtab et strtab
     for (int i = 0; i < file_hdr->e_shnum; i++) {
         elf_64.name = &elf_64.shstrtab[elf_64.sections_hdr[i].sh_name];
-        if (!ft_strncmp(elf_64.name, ".symtab", ft_strlen(".symtab")))
+        if (!ft_strncmp(elf_64.name, ".symtab", ft_strlen(".symtab"))) {
+            is_symtab = true;
             elf_64.symtab_hdr = &elf_64.sections_hdr[i];
-        else if (!ft_strncmp(elf_64.name, ".strtab", ft_strlen(".strtab")))
+        }
+        else if (!ft_strncmp(elf_64.name, ".strtab", ft_strlen(".strtab"))) {
+            is_strtab = true;
             elf_64.strtab_hdr = &elf_64.sections_hdr[i];
+        }
+    }
+    if (!is_symtab || !is_strtab) {
+        return print_error(options.file_name, ": no symbols\n", NULL, false);
     }
     // recupere la section symtab
     elf_64.symtab = (Elf64_Sym *)(file_data + elf_64.symtab_hdr->sh_offset);
@@ -68,9 +77,10 @@ void handle_elf_64(Elf64_Ehdr *file_hdr, u_int8_t *file_data) {
     elf_64.strtab = get_strtab(file_data, elf_64.strtab_hdr->sh_size, elf_64.strtab_hdr->sh_offset);
     t_symbol_data *sym_data = ft_calloc(elf_64.symbols_offset, sizeof(t_symbol_data));
     if (sym_data == NULL)
-        return ;
+        return 1;
     sym_data_init(sym_data, elf_64.symbols_offset);
     fill_symdata(sym_data, elf_64);
     free(elf_64.strtab);
     free(elf_64.shstrtab);
+    return 0;
 }

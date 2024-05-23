@@ -44,20 +44,36 @@ typedef struct s_elf_64 {
     uint16_t e_shstrndx; // Index de la section de noms de section shstrtab
 } t_elf_64;
 
+typedef struct s_elf_32 {
+    char *name;
+    char *strtab;
+    char *shstrtab;
+    int symbols_offset;
+    Elf32_Ehdr *file_hdr; // Stock l'adresse des headers du fichier
+    Elf32_Shdr *sections_hdr; // Stock l'adresse des headers des sections
+    Elf32_Shdr *symtab_hdr; // Stock l'adresse du header symtab
+    Elf32_Shdr *strtab_hdr; // Stock l'adresse du header strtab
+    Elf32_Sym *symtab; // Stock l'adresse du debut de la section strtab
+    uint16_t e_shstrndx; // Index de la section de noms de section shstrtab
+} t_elf_32;
+
 extern t_options options;
 extern char *text_sections[4];
 extern char *data_sections[6];
 extern char *ro_sections[5];
 extern char *weak_sections[4];
 
-int     handle_file_errors(int fd, struct stat buf);
 void    insertion_sort(t_symbol_data *array, int n, int reverse);
 void    handle_output(t_symbol_data *sym_data, int sym_size);
-void    handle_elf_64(Elf64_Ehdr *file_hdr, u_int8_t *file_data);
+void    help_output();
+void    sym_data_init(t_symbol_data *sym_data, int size);
+
+int     handle_file_errors(int fd, struct stat buf);
+int     handle_elf_32(Elf32_Ehdr *file_hdr, u_int8_t *file_data);
+int     handle_elf_64(Elf64_Ehdr *file_hdr, u_int8_t *file_data);
+int     is_upper(char c);
+int     print_error(char *file_name ,char *err, char *err_type, bool is_quote);
+
 char    *formatted_address(uint64_t address);
 char    get_final_symbol_type(unsigned int type, unsigned int bind, unsigned int size, char *section_name);
 char    *get_strtab(uint8_t *file_data, uint64_t strtab_size, Elf64_Off strtab_offset);
-int     is_upper(char c);
-void    sym_data_init(t_symbol_data *sym_data, int size);
-void    help_output();
-void    print_error(char *file_name ,char *err, char *err_type);
