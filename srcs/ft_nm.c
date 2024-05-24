@@ -1,6 +1,9 @@
 #include "ft_nm.h"
 
 t_options options;
+t_elf_64 elf_64;
+t_elf_32 elf_32;
+
 char *text_sections[4]  = { ".text", ".init", ".fini", NULL };
 char *data_sections[6] = {  ".data", ".fini_array", ".init_array", ".dynamic", ".got", NULL,};
 char *ro_sections[5] = { ".rodata", ".eh_frame",  ".eh_frame_hdr",".note.ABI-tag", NULL,};
@@ -100,30 +103,79 @@ char get_final_symbol_type(unsigned int type, unsigned int bind, unsigned int si
     return '?';
 }
 
+uint64_t convert_endian64(uint64_t value, unsigned char data_encoding) {
+    if (data_encoding == ELFDATA2MSB) {
+        elf_64.is_bigendian = ELFDATA2MSB;
+        return ((value & 0xFF00000000000000ULL) >> 56) |
+               ((value & 0x00FF000000000000ULL) >> 40) |
+               ((value & 0x0000FF0000000000ULL) >> 24) |
+               ((value & 0x000000FF00000000ULL) >> 8)  |
+               ((value & 0x00000000FF000000ULL) << 8)  |
+               ((value & 0x0000000000FF0000ULL) << 24) |
+               ((value & 0x000000000000FF00ULL) << 40) |
+               ((value & 0x00000000000000FFULL) << 56);
+    }
+    return value; // Assume little endian by default
+}
+
+uint32_t convert_endian32(uint32_t value, unsigned char data_encoding) {
+    if (data_encoding == ELFDATA2MSB) {
+        elf_32.is_bigendian = ELFDATA2MSB;
+        return ((value & 0xFF000000) >> 24) |
+               ((value & 0x00FF0000) >> 8)  |
+               ((value & 0x0000FF00) << 8)  |
+               ((value & 0x000000FF) << 24);
+    }
+    return value; // Assume little endian by default
+}
+
+
+uint16_t convert_endian16(uint16_t value, unsigned char data_encoding) {
+    if (data_encoding == ELFDATA2MSB) {
+        return (value >> 8) | (value << 8);
+    }
+    return value; // Assume little endian by default
+}
+
 static int handle_elf_errors(Elf64_Ehdr *file_hdr, uint8_t *file_data, char *filename, long int st_size) {
     Elf64_Ehdr *hdr64;
     Elf32_Ehdr* hdr32;
     Elf64_Off shoff;
     Elf64_Off phoff;
     uint16_t shnum;
-    unsigned long hdr_size = 0;
+    unsigned long sizeof_hdr = 0;
     
     if (file_hdr->e_ident[EI_CLASS] == ELFCLASS64) {
         hdr64 = (Elf64_Ehdr*) file_data;
-        shoff = hdr64->e_shoff;
-        phoff = hdr64->e_phoff;
+        shoff = convert_endian64(hdr64->e_shoff, file_hdr->e_ident[EI_DATA]);
+        phoff = convert_endian64(hdr64->e_phoff, file_hdr->e_ident[EI_DATA]);
+        elf_64.e_shstrndx = convert_endian16(hdr64->e_shstrndx, file_hdr->e_ident[EI_DATA]);
         shnum = hdr64->e_shnum;
-        hdr_size = sizeof(Elf64_Ehdr);
+        elf_64.e_shoff = shoff;
+        elf_64.e_shnum = shnum;
+        sizeof_hdr = sizeof(Elf64_Ehdr);
+        
+        printf("phoff : %ld\n", phoff);
+        printf("shoff : %ld\n",shoff);
+        printf("e_shnum : %d\n", shnum);
+        printf("st_size : %ld\n", st_size);
     } else if (file_hdr->e_ident[EI_CLASS] == ELFCLASS32) {
         hdr32 = (Elf32_Ehdr*) file_data;
-        shoff = hdr32->e_shoff;
-        phoff = hdr32->e_phoff;
-        shnum = hdr32->e_shnum;
-        hdr_size = sizeof(Elf32_Ehdr);
-    } else {
-        return print_error(filename, ": file format not recognized\n", NULL, false);
+        shoff = convert_endian32(hdr32->e_shoff, file_hdr->e_ident[EI_DATA]);
+        phoff = convert_endian32(hdr32->e_phoff, file_hdr->e_ident[EI_DATA]);
+        shnum = convert_endian16(hdr32->e_shnum, file_hdr->e_ident[EI_DATA]);
+        elf_32.e_shstrndx = convert_endian16(hdr32->e_shstrndx, file_hdr->e_ident[EI_DATA]);
+        elf_32.e_shoff = shoff;
+        elf_32.e_shnum = shnum;
+        sizeof_hdr = sizeof(Elf32_Ehdr);
+
+        printf("phoff : %ld\n", phoff);
+        printf("shoff : %ld\n",shoff);
+        printf("e_shnum : %d\n", shnum);
+        printf("st_size : %ld\n", st_size);
+        printf("e_shstrndx : %d\n", elf_32.e_shstrndx);
     }
-    if (phoff == 0 || shoff == 0 || shnum == 0 || shoff < hdr_size || shoff >= (Elf64_Off) st_size)
+    if (phoff == 0 || shoff == 0 || shnum == 0 || shoff < sizeof_hdr || shoff >= (Elf64_Off) st_size)
             return print_error(filename, ": file format not recognized 2\n", NULL, false);
     else if (file_hdr->e_ident[EI_DATA] != ELFDATA2LSB && file_hdr->e_ident[EI_DATA] != ELFDATA2MSB)
         return print_error(filename, ": file format not recognized 3\n", NULL, false);
@@ -134,20 +186,10 @@ static int handle_elf_errors(Elf64_Ehdr *file_hdr, uint8_t *file_data, char *fil
 }
 
 int define_elf_type(uint8_t *file_data, char *filename, long int st_size) {
+    
     Elf64_Ehdr *file_hdr;
     file_hdr = (Elf64_Ehdr *) file_data;
-    // printf("%ld\n", file_hdr->e_phoff);
-    // printf("%ld\n", file_hdr->e_shoff);
-    // printf("%d\n\n", file_hdr->e_shnum);
 
-    //  printf("%d\n", file_hdr_32->e_phoff);
-    // printf("%d\n", file_hdr_32->e_shoff);
-    // printf("%d\n", file_hdr_32->e_shnum);
-    // // printf("%d\n", file_hdr->e_type);
-    // // printf("%s\n", file_hdr->e_ident);
-    // printf("size: %ld\n",st_size);
-    // printf("Taille de l'entête ELF32 : %lu octets\n", sizeof(Elf32_Ehdr));
-    // printf("Taille de l'entête ELF64 : %lu octets\n", sizeof(Elf64_Ehdr));
     if (file_hdr->e_ident[EI_MAG0] != ELFMAG0 || file_hdr->e_ident[EI_MAG1] != ELFMAG1 ||
             file_hdr->e_ident[EI_MAG2] != ELFMAG2 || file_hdr->e_ident[EI_MAG3] != ELFMAG3)
         return print_error(filename, ": file format not recognized 1\n", NULL, false);
@@ -155,14 +197,15 @@ int define_elf_type(uint8_t *file_data, char *filename, long int st_size) {
         printf("ca va dans le 32\n");
         if (handle_elf_errors(file_hdr, file_data, filename, st_size))
             return 1;
-        // Elf32_Ehdr *file_hdr_32 = (Elf32_Ehdr *) file_data;
-        // return handle_elf_32(file_hdr_32, file_data);
+        Elf32_Ehdr *file_hdr_32 = (Elf32_Ehdr *) file_data;
+        return handle_elf_32(file_hdr_32, file_data, elf_32);
     } 
     else if (file_hdr->e_ident[EI_CLASS] == ELFCLASS64) {
         if (handle_elf_errors(file_hdr, file_data, filename, st_size))
             return 1;
-        return handle_elf_64(file_hdr, file_data);
-    }
+        return handle_elf_64(file_hdr, file_data, elf_64);
+    } else
+        return print_error(filename, ": file format not recognized 5\n", NULL, false);
     return 0;
 }
 
@@ -248,3 +291,16 @@ int main(int ac, char **av) {
     }
     return 0;
 }
+ 
+    // printf("%ld\n", file_hdr->e_phoff);
+    // printf("%ld\n", file_hdr->e_shoff);
+    // printf("%d\n\n", file_hdr->e_shnum);
+
+    //  printf("%d\n", file_hdr_32->e_phoff);
+    // printf("%d\n", file_hdr_32->e_shoff);
+    // printf("%d\n", file_hdr_32->e_shnum);
+    // // printf("%d\n", file_hdr->e_type);
+    // // printf("%s\n", file_hdr->e_ident);
+    // printf("size: %ld\n",st_size);
+    // printf("Taille de l'entête ELF32 : %lu octets\n", sizeof(Elf32_Ehdr));
+    // printf("Taille de l'entête ELF64 : %lu octets\n", sizeof(Elf64_Ehdr));

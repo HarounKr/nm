@@ -46,8 +46,7 @@ static void fill_symdata(t_symbol_data *sym_data, t_elf_64 elf_64) {
     sym_data = NULL;
 }
 
-int handle_elf_64(Elf64_Ehdr *file_hdr, u_int8_t *file_data) {
-    t_elf_64 elf_64;
+int handle_elf_64(Elf64_Ehdr *file_hdr, u_int8_t *file_data, t_elf_64 elf_64) {
     bool is_symtab = false;
     bool is_strtab = false;
 
