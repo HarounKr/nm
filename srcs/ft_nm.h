@@ -31,6 +31,18 @@ typedef struct s_options{
     bool p; // Ne pas trier les symboles, uniquement les afficher dans leur ordre de rencontre.
 } t_options;
 
+typedef struct s_elf_32 {
+    char *strtab;
+    char *shstrtab;
+    int symbols_offset;
+    int is_bigendian;
+    Elf32_Shdr *sections_hdr; // Stock l'adresse des headers des sections
+    Elf32_Sym *symtab; // Stock l'adresse du debut de la section strtab
+    uint16_t e_shstrndx; // Index de la section de noms de section shstrtab
+    uint16_t e_shnum;
+    Elf32_Off e_shoff;
+} t_elf_32;
+
 typedef struct s_elf_64 {
     char *name;
     char *strtab;
@@ -46,21 +58,10 @@ typedef struct s_elf_64 {
     Elf64_Off e_shoff;
 } t_elf_64;
 
-typedef struct s_elf_32 {
-    char *strtab;
-    char *shstrtab;
-    int symbols_offset;
-    int is_bigendian;
-    Elf32_Shdr *sections_hdr; // Stock l'adresse des headers des sections
-    Elf32_Shdr *symtab_hdr; // Stock l'adresse du header symtab
-    Elf32_Shdr *strtab_hdr; // Stock l'adresse du header strtab
-    Elf32_Sym *symtab; // Stock l'adresse du debut de la section strtab
-    uint16_t e_shstrndx; // Index de la section de noms de section shstrtab
-    uint16_t e_shnum;
-    Elf32_Off e_shoff;
-} t_elf_32;
-
+extern t_elf_32 elf_32;
+extern t_elf_64 elf_64;
 extern t_options options;
+
 extern char *text_sections[4];
 extern char *data_sections[6];
 extern char *ro_sections[5];
@@ -80,3 +81,7 @@ int     print_error(char *file_name ,char *err, char *err_type, bool is_quote);
 char    *formatted_address(uint64_t address);
 char    get_final_symbol_type(unsigned int type, unsigned int bind, unsigned int size, char *section_name);
 char    *get_strtab(uint8_t *file_data, uint64_t strtab_size, Elf64_Off strtab_offset);
+
+uint16_t convert_endian16(uint16_t value, unsigned char data_encoding);
+uint32_t convert_endian32(uint32_t value, unsigned char data_encoding);
+uint64_t convert_endian64(uint64_t value, unsigned char data_encoding);
