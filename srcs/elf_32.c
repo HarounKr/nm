@@ -3,7 +3,6 @@
 static void fill_symdata(t_symbol_data *sym_data, t_elf_32 elf_32) {
     char *name;
     int sym_size = 0;
-    (void)name;
 
     printf("symbols_offset : %d\n", elf_32.symbols_offset);
     for (int i = 0; i < elf_32.symbols_offset; i++) {
@@ -25,9 +24,9 @@ static void fill_symdata(t_symbol_data *sym_data, t_elf_32 elf_32) {
         name = &elf_32.strtab[st_name];
         if (ft_strlen(name) != STT_NOTYPE && type != STT_FILE) {
             if (st_shndx)
-                sym_data[sym_size].address = formatted_address(st_value);
+                sym_data[sym_size].address = formatted_address(st_value, 7);
             else {
-                sym_data[sym_size].address = ft_strdup("                ");
+                sym_data[sym_size].address = ft_strdup("        ");
                 sym_data[sym_size].is_undefined = 1;
             }
 

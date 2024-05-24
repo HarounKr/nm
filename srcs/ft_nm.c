@@ -9,29 +9,16 @@ char *data_sections[6] = {  ".data", ".fini_array", ".init_array", ".dynamic", "
 char *ro_sections[5] = { ".rodata", ".eh_frame",  ".eh_frame_hdr",".note.ABI-tag", NULL,};
 char *weak_sections[4] = { ".rodata", ".data", ".bss", NULL };
 
-const char *get_elf_symbol_type(unsigned int type) {
-    switch (type) {
-        case STT_NOTYPE:   return "NOTYPE";
-        case STT_OBJECT:   return "OBJECT";
-        case STT_FUNC:     return "FUNC";
-        case STT_SECTION:  return "SECTION";
-        case STT_FILE:     return "FILE";
-        case STT_COMMON:   return "COMMON";
-        case STT_TLS:      return "TLS";
-        default:           return "<unknown>";
-    }
-}
-
-char *formatted_address(uint64_t address) {
-    int i = 15;
-    char *formatted_address = ft_calloc(17, sizeof(char)); // "0000000000004010" + '\0'
+char *formatted_address(uint64_t address, int index) {
+    int i = index;
+    char *formatted_address = ft_calloc(index + 2, sizeof(char)); // "0000000000004010" + '\0'
 
     if (!formatted_address)
         return NULL;
-    for (int i = 0; i < 16; i++) {
+    for (int i = 0; i < index + 1; i++) {
         formatted_address[i] = '0';
     }
-    formatted_address[16] = '\0';
+    formatted_address[index + 1] = '\0';
     while (address > 0 && i >= 0) {
         int digit = address % 16;
         formatted_address[i] = digit < 10 ? '0' + digit : 'a' + digit - 10;
@@ -101,54 +88,6 @@ char get_final_symbol_type(unsigned int type, unsigned int bind, unsigned int si
         } 
     }
     return '?';
-}
-
-static int handle_elf_errors(Elf64_Ehdr *file_hdr, uint8_t *file_data, char *filename, long int st_size) {
-    Elf64_Ehdr *hdr64;
-    Elf32_Ehdr* hdr32;
-    Elf64_Off shoff;
-    Elf64_Off phoff;
-    uint16_t shnum;
-    unsigned long sizeof_hdr = 0;
-    
-    if (file_hdr->e_ident[EI_CLASS] == ELFCLASS64) {
-        hdr64 = (Elf64_Ehdr*) file_data;
-        shoff = convert_endian64(hdr64->e_shoff, file_hdr->e_ident[EI_DATA]);
-        phoff = convert_endian64(hdr64->e_phoff, file_hdr->e_ident[EI_DATA]);
-        elf_64.e_shstrndx = convert_endian16(hdr64->e_shstrndx, file_hdr->e_ident[EI_DATA]);
-        shnum = hdr64->e_shnum;
-        elf_64.e_shoff = shoff;
-        elf_64.e_shnum = shnum;
-        sizeof_hdr = sizeof(Elf64_Ehdr);
-        
-        printf("phoff : %ld\n", phoff);
-        printf("shoff : %ld\n",shoff);
-        printf("e_shnum : %d\n", shnum);
-        printf("st_size : %ld\n", st_size);
-    } else if (file_hdr->e_ident[EI_CLASS] == ELFCLASS32) {
-        hdr32 = (Elf32_Ehdr*) file_data;
-        shoff = convert_endian32(hdr32->e_shoff, file_hdr->e_ident[EI_DATA]);
-        phoff = convert_endian32(hdr32->e_phoff, file_hdr->e_ident[EI_DATA]);
-        shnum = convert_endian16(hdr32->e_shnum, file_hdr->e_ident[EI_DATA]);
-        elf_32.e_shstrndx = convert_endian16(hdr32->e_shstrndx, file_hdr->e_ident[EI_DATA]);
-        elf_32.e_shoff = shoff;
-        elf_32.e_shnum = shnum;
-        sizeof_hdr = sizeof(Elf32_Ehdr);
-
-        printf("phoff : %ld\n", phoff);
-        printf("shoff : %ld\n",shoff);
-        printf("e_shnum : %d\n", shnum);
-        printf("st_size : %ld\n", st_size);
-        printf("e_shstrndx : %d\n", elf_32.e_shstrndx);
-    }
-    if (phoff == 0 || shoff == 0 || shnum == 0 || shoff < sizeof_hdr || shoff >= (Elf64_Off) st_size)
-            return print_error(filename, ": file format not recognized 2\n", NULL, false);
-    else if (file_hdr->e_ident[EI_DATA] != ELFDATA2LSB && file_hdr->e_ident[EI_DATA] != ELFDATA2MSB)
-        return print_error(filename, ": file format not recognized 3\n", NULL, false);
-    else if (file_hdr->e_ident[EI_VERSION] != EV_CURRENT)
-        return print_error(filename, ": file format not recognized 4\n", NULL, false);
-
-    return 0;
 }
 
 int define_elf_type(uint8_t *file_data, char *filename, long int st_size) {

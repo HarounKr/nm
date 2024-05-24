@@ -44,14 +44,11 @@ typedef struct s_elf_32 {
 } t_elf_32;
 
 typedef struct s_elf_64 {
-    char *name;
     char *strtab;
     char *shstrtab;
     int symbols_offset;
     int is_bigendian;
     Elf64_Shdr *sections_hdr; // Stock l'adresse des headers des sections
-    Elf64_Shdr *symtab_hdr; // Stock l'adresse du header symtab
-    Elf64_Shdr *strtab_hdr; // Stock l'adresse du header strtab
     Elf64_Sym *symtab; // Stock l'adresse du debut de la section strtab
     uint16_t e_shstrndx; // Index de la section de noms de section shstrtab
     uint16_t e_shnum;
@@ -72,13 +69,13 @@ void    handle_output(t_symbol_data *sym_data, int sym_size);
 void    help_output();
 void    sym_data_init(t_symbol_data *sym_data, int size);
 
-int     handle_file_errors(int fd, struct stat buf);
+int     handle_elf_errors(Elf64_Ehdr *file_hdr, uint8_t *file_data, char *filename, long int st_size);
 int     handle_elf_32(Elf32_Ehdr *file_hdr, u_int8_t *file_data, t_elf_32 elf_32);
 int     handle_elf_64(Elf64_Ehdr *file_hdr, u_int8_t *file_data, t_elf_64 elf_64);
 int     is_upper(char c);
 int     print_error(char *file_name ,char *err, char *err_type, bool is_quote);
 
-char    *formatted_address(uint64_t address);
+char    *formatted_address(uint64_t address, int index);
 char    get_final_symbol_type(unsigned int type, unsigned int bind, unsigned int size, char *section_name);
 char    *get_strtab(uint8_t *file_data, uint64_t strtab_size, Elf64_Off strtab_offset);
 
