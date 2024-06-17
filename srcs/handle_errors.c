@@ -24,20 +24,22 @@ int handle_elf_errors(Elf64_Ehdr *file_hdr, uint8_t *file_data, char *filename, 
     
     if (file_hdr->e_ident[EI_CLASS] == ELFCLASS64) {
         hdr64 = (Elf64_Ehdr*) file_data;
+        elf_64.is_bigendian = 0;
         shoff = convert_endian64(hdr64->e_shoff, file_hdr->e_ident[EI_DATA]);
         phoff = convert_endian64(hdr64->e_phoff, file_hdr->e_ident[EI_DATA]);
+        shnum = convert_endian16(hdr64->e_shnum, file_hdr->e_ident[EI_DATA]);
         elf_64.e_shstrndx = convert_endian16(hdr64->e_shstrndx, file_hdr->e_ident[EI_DATA]);
-        shnum = hdr64->e_shnum;
         elf_64.e_shoff = shoff;
         elf_64.e_shnum = shnum;
         sizeof_hdr = sizeof(Elf64_Ehdr);
         
-        printf("phoff : %ld\n", phoff);
-        printf("shoff : %ld\n",shoff);
-        printf("e_shnum : %d\n", shnum);
-        printf("st_size : %ld\n", st_size);
+        // printf("Start of program headers: e_phoff: %ld\n", phoff);
+        // printf("Start of section headers: e_shnum: %ld\n",shoff);
+        // printf("Number of section headers: e_shnum: %d\n", shnum);
+        // printf("Section header string table index: e_shstrndx: %d\n", elf_64.e_shstrndx);
     } else if (file_hdr->e_ident[EI_CLASS] == ELFCLASS32) {
         hdr32 = (Elf32_Ehdr*) file_data;
+        elf_32.is_bigendian = 0;
         shoff = convert_endian32(hdr32->e_shoff, file_hdr->e_ident[EI_DATA]);
         phoff = convert_endian32(hdr32->e_phoff, file_hdr->e_ident[EI_DATA]);
         shnum = convert_endian16(hdr32->e_shnum, file_hdr->e_ident[EI_DATA]);
@@ -46,11 +48,10 @@ int handle_elf_errors(Elf64_Ehdr *file_hdr, uint8_t *file_data, char *filename, 
         elf_32.e_shnum = shnum;
         sizeof_hdr = sizeof(Elf32_Ehdr);
 
-        printf("phoff : %ld\n", phoff);
-        printf("shoff : %ld\n",shoff);
-        printf("e_shnum : %d\n", shnum);
-        printf("st_size : %ld\n", st_size);
-        printf("e_shstrndx : %d\n", elf_32.e_shstrndx);
+        // printf("Start of program headers: %ld\n", phoff);
+        // printf("Start of section headers: %ld\n",shoff);
+        // printf("Number of section headers: %d\n", shnum);
+        // printf("Section header string table index: : e_shstrndx : %d\n", elf_32.e_shstrndx);
     }
     if (phoff == 0 || shoff == 0 || shnum == 0 || shoff < sizeof_hdr || shoff >= (Elf64_Off) st_size)
             return print_error(filename, ": file format not recognized 2\n", NULL, false);

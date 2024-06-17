@@ -106,6 +106,7 @@ int define_elf_type(uint8_t *file_data, char *filename, long int st_size) {
         return handle_elf_32(file_hdr_32, file_data, elf_32);
     } 
     else if (file_hdr->e_ident[EI_CLASS] == ELFCLASS64) {
+        printf("ca va dans le 64\n");
         if (handle_elf_errors(file_hdr, file_data, filename, st_size))
             return 1;
         return handle_elf_64(file_hdr, file_data, elf_64);
@@ -158,6 +159,7 @@ int main(int ac, char **av) {
             return 1;
         }
         for (int i = 0; i < options.files_nb; i++) {
+            // printf("NAME : %s\n", av[i + 1]);
             int fd = open(options.files_name[i], O_RDONLY, S_IRUSR);
             if (fd == -1)
                return print_error(options.files_name[i], " No such file\n", NULL, true);
@@ -170,6 +172,7 @@ int main(int ac, char **av) {
                 return print_error(options.files_name[i], " is a directory\n", "Warning", true);
             }
             else {
+                // printf("file size : %ld\n", buf.st_size);
                 file_data = mmap(NULL, buf.st_size, PROT_READ, MAP_PRIVATE, fd, 0);
                 if (file_data == MAP_FAILED) {
                     close(fd);

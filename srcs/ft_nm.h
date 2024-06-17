@@ -17,7 +17,7 @@ typedef struct s_symbol_data {
     char type;
     char *name;
     bool   is_undefined;
-    bool   is_external;  
+    bool   is_external;
 } t_symbol_data;
 
 typedef struct s_options{
