@@ -20,6 +20,7 @@ int handle_elf_errors(Elf64_Ehdr *file_hdr, uint8_t *file_data, char *filename, 
     Elf64_Off shoff;
     Elf64_Off phoff;
     uint16_t shnum;
+    uint16_t type;
     unsigned long sizeof_hdr = 0;
     
     if (file_hdr->e_ident[EI_CLASS] == ELFCLASS64) {
@@ -28,6 +29,7 @@ int handle_elf_errors(Elf64_Ehdr *file_hdr, uint8_t *file_data, char *filename, 
         shoff = convert_endian64(hdr64->e_shoff, file_hdr->e_ident[EI_DATA]);
         phoff = convert_endian64(hdr64->e_phoff, file_hdr->e_ident[EI_DATA]);
         shnum = convert_endian16(hdr64->e_shnum, file_hdr->e_ident[EI_DATA]);
+        type = convert_endian16(hdr64->e_type, file_hdr->e_ident[EI_DATA]);
         elf_64.e_shstrndx = convert_endian16(hdr64->e_shstrndx, file_hdr->e_ident[EI_DATA]);
         elf_64.e_shoff = shoff;
         elf_64.e_shnum = shnum;
@@ -43,6 +45,7 @@ int handle_elf_errors(Elf64_Ehdr *file_hdr, uint8_t *file_data, char *filename, 
         shoff = convert_endian32(hdr32->e_shoff, file_hdr->e_ident[EI_DATA]);
         phoff = convert_endian32(hdr32->e_phoff, file_hdr->e_ident[EI_DATA]);
         shnum = convert_endian16(hdr32->e_shnum, file_hdr->e_ident[EI_DATA]);
+        type = convert_endian16(hdr32->e_type, file_hdr->e_ident[EI_DATA]);
         elf_32.e_shstrndx = convert_endian16(hdr32->e_shstrndx, file_hdr->e_ident[EI_DATA]);
         elf_32.e_shoff = shoff;
         elf_32.e_shnum = shnum;
@@ -53,7 +56,7 @@ int handle_elf_errors(Elf64_Ehdr *file_hdr, uint8_t *file_data, char *filename, 
         // printf("Number of section headers: %d\n", shnum);
         // printf("Section header string table index: : e_shstrndx : %d\n", elf_32.e_shstrndx);
     }
-    if (phoff == 0 || shoff == 0 || shnum == 0 || shoff < sizeof_hdr || shoff >= (Elf64_Off) st_size)
+    if ((phoff == 0 && type != ET_REL) || shoff == 0 || shnum == 0 || shoff < sizeof_hdr || shoff >= (Elf64_Off) st_size)
             return print_error(filename, ": file format not recognized 2\n", NULL, false);
     else if (file_hdr->e_ident[EI_DATA] != ELFDATA2LSB && file_hdr->e_ident[EI_DATA] != ELFDATA2MSB)
         return print_error(filename, ": file format not recognized 3\n", NULL, false);

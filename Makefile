@@ -10,6 +10,7 @@ LIBFT=  libft/ft_strlen.c libft/ft_putstr_fd.c \
 		libft/ft_strncmp.c libft/ft_strdup.c \
 		libft/ft_isalpha.c libft/ft_tolower.c \
 		libft/ft_strjoin.c libft/ft_calloc.c \
+		libft/ft_atoi.c libft/ft_strchr.c \
 
 OBJ = $(SRC:.c=.o) $(LIBFT:.c=.o)
 all: $(NAME)

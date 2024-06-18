@@ -3,7 +3,7 @@
 static int fill_symdata(t_symbol_data *sym_data, t_elf_64 elf_64) {
     char *name;
     int sym_size = 0;
-    printf("symbols_offset : %d\n", elf_64.symbols_offset);
+    // printf("symbols_offset : %d\n", elf_64.symbols_offset);
     for (int i = 0; i < elf_64.symbols_offset; i++) {
         unsigned int type = ELF64_ST_TYPE(elf_64.symtab[i].st_info);
         // printf("st_type  : %-10d |\n", type);

@@ -57,8 +57,8 @@ int handle_elf_32(Elf32_Ehdr *file_hdr, u_int8_t *file_data, t_elf_32 elf_32) {
     elf_32.sections_hdr = (Elf32_Shdr *) (file_data + elf_32.e_shoff);
     uint32_t shstrtab_size = convert_endian32(elf_32.sections_hdr[elf_32.e_shstrndx].sh_size, elf_32.is_bigendian);
     uint32_t shstrtab_offset = convert_endian32(elf_32.sections_hdr[elf_32.e_shstrndx].sh_offset, elf_32.is_bigendian);
-    printf(" shstrtab_offset %d\n", shstrtab_offset);
-    printf(" shstrtab_size %d\n", shstrtab_size);
+    // printf(" shstrtab_offset %d\n", shstrtab_offset);
+    // printf(" shstrtab_size %d\n", shstrtab_size);
 
     elf_32.shstrtab = get_strtab(file_data, shstrtab_size, shstrtab_offset);
     // recupere les addresses des headers symtab et strtab

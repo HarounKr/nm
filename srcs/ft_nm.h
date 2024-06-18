@@ -55,6 +55,16 @@ typedef struct s_elf_64 {
     Elf64_Off e_shoff;
 } t_elf_64;
 
+typedef struct s_archive_file_hdr {
+    char file_identifier[16];  // Nom du fichier
+    char timestamp[12];        // Timestamp
+    char owner_id[6];          // Owner ID
+    char group_id[6];          // Group ID
+    char mode[8];              // Mode
+    char file_size[10];        // Tail size
+    char end_char[2]; 
+} s_archive_file_hdr;
+
 extern t_elf_32 elf_32;
 extern t_elf_64 elf_64;
 extern t_options options;
