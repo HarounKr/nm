@@ -17,8 +17,9 @@ static int fill_symdata(t_symbol_data *sym_data, t_elf_32 elf_32) {
     
         name = &elf_32.strtab[st_name];
         if (ft_strlen(name) != STT_NOTYPE && type != STT_FILE) {
+            // printf("Name: %-10s | ", name);
             uint16_t st_shndx = convert_endian16(elf_32.symtab[i].st_shndx, elf_32.is_bigendian);
-            // printf("st_shndx : %-10d |\n", st_shndx);
+            // printf("st_shndx : %-10d | ", st_shndx);
             uint32_t st_value = convert_endian32(elf_32.symtab[i].st_value, elf_32.is_bigendian);
             // printf("st_value : %-10d |\n", st_value);
             if (st_shndx)
@@ -27,10 +28,13 @@ static int fill_symdata(t_symbol_data *sym_data, t_elf_32 elf_32) {
                 sym_data[sym_size].address = ft_strdup("        ");
                 sym_data[sym_size].is_undefined = 1;
             }
-            if (st_shndx == SHN_ABS) {
+            if (st_shndx == SHN_ABS && bind == STB_LOCAL) {
                 sym_data[sym_size].type = 'a';
+            } else if (st_shndx == SHN_ABS && bind == STB_GLOBAL) {
+                sym_data[sym_size].type = 'A';
             }
             else {
+                
                 uint32_t sh_name = convert_endian32(elf_32.sections_hdr[st_shndx].sh_name, elf_32.is_bigendian);
                 // printf("sh_name  : %-10d |\n", sh_name);
                 sym_data[sym_size].type = get_final_symbol_type(type, bind, size, &elf_32.shstrtab[sh_name]);
@@ -74,6 +78,7 @@ int handle_elf_32(Elf32_Ehdr *file_hdr, u_int8_t *file_data, t_elf_32 elf_32) {
             strtab_hdr = &elf_32.sections_hdr[i];
         }
     }
+    print_filename();
     if (!is_symtab || !is_strtab) {
         free(elf_32.shstrtab);
         return print_error(options.file_name, ": no symbols\n", NULL, false);

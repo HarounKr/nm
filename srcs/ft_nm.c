@@ -4,9 +4,9 @@ t_options options;
 t_elf_64 elf_64;
 t_elf_32 elf_32;
 
-char *text_sections[4]  = { ".text", ".init", ".fini", NULL };
-char *data_sections[6] = {  ".data", ".fini_array", ".init_array", ".dynamic", ".got", NULL,};
-char *ro_sections[5] = { ".rodata", ".eh_frame",  ".eh_frame_hdr",".note.ABI-tag", NULL,};
+char *text_sections[6]  = { ".text", ".text.__x86.get_pc_thunk.ax", ".text.__x86.get_pc_thunk.bx", ".init", ".fini", NULL };
+char *data_sections[10] = {".data", ".fini_array", ".init_array", ".dynamic", ".got", ".got.plt", ".ctors", ".dtors", NULL};
+char *ro_sections[5] = {".rodata",".eh_frame" ,".eh_frame_hdr", ".note.ABI-tag", NULL};
 char *weak_sections[4] = { ".rodata", ".data", ".bss", NULL };
 
 char *formatted_address(uint64_t address, int index) {
@@ -40,7 +40,7 @@ char *get_strtab(uint8_t *file_data, uint64_t strtab_size, Elf64_Off strtab_offs
 int is_section(char *section_name, char **sections) {
     for (int i = 0; sections[i] != NULL; i++) {
         // printf("sections[i] : %s\n", sections[i]);
-        if (!ft_strncmp(section_name, sections[i], ft_strlen(section_name)))
+        if (!strcmp(section_name, sections[i]))
             return 0;
     }
     return 1;
@@ -50,8 +50,8 @@ char get_final_symbol_type(unsigned int type, unsigned int bind, unsigned int si
     // printf("type  name : %-10s | ", get_elf_symbol_type(type));
     // printf("type  : %-10d | ", type);
     // printf("bind  : %-10d | ", bind);
-    // printf("section  : %-30s |", section_name);
-    // (void)size;
+    // printf("section  : %-30s |\n", section_name);
+    
     if (bind == STB_WEAK) {
         if (!ft_strlen(section_name))
             return 'w';
@@ -67,7 +67,7 @@ char get_final_symbol_type(unsigned int type, unsigned int bind, unsigned int si
                 return 't';
             else if (bind == STB_GLOBAL)
                 return 'T';
-        } else if (!ft_strncmp(section_name, ".bss", ft_strlen(".bss"))) {
+        } else if (!strcmp(section_name, ".bss")) {
             if (bind == STB_LOCAL)
                 return 'b';
             else if (bind == STB_GLOBAL)
@@ -97,7 +97,7 @@ int define_elf_type(uint8_t *file_data, char *filename, long int st_size) {
 
     if (file_hdr->e_ident[EI_MAG0] != ELFMAG0 || file_hdr->e_ident[EI_MAG1] != ELFMAG1 ||
             file_hdr->e_ident[EI_MAG2] != ELFMAG2 || file_hdr->e_ident[EI_MAG3] != ELFMAG3)
-        return print_error(filename, ": file format not recognized 1\n", NULL, false);
+        return print_error(filename, ": file format not recognized\n", NULL, false);
     else if (file_hdr->e_ident[EI_CLASS] == ELFCLASS32) {
         // printf("ca va dans le 32\n");
         if (handle_elf_errors(file_hdr, file_data, filename, st_size))
@@ -111,7 +111,7 @@ int define_elf_type(uint8_t *file_data, char *filename, long int st_size) {
             return 1;
         return handle_elf_64(file_hdr, file_data, elf_64);
     } else
-        return print_error(filename, ": file format not recognized 5\n", NULL, false);
+        return print_error(filename, ": file format not recognized\n", NULL, false);
     return 0;
 }
 
@@ -152,7 +152,7 @@ int parse_args(int ac, char **av) {
 
 int handle_archive_file(uint8_t *file_data, long st_size) {
     int offset = 8;
-
+    
     while (offset < st_size) {
         s_archive_file_hdr *header = (s_archive_file_hdr *)(file_data + offset);
         
@@ -180,7 +180,6 @@ int main(int ac, char **av) {
             return 1;
         }
         for (int i = 0; i < options.files_nb; i++) {
-            // printf("NAME : %s\n", av[i + 1]);
             int fd = open(options.files_name[i], O_RDONLY, S_IRUSR);
             if (fd == -1)
                return print_error(options.files_name[i], " No such file\n", NULL, true);
@@ -200,7 +199,7 @@ int main(int ac, char **av) {
                     return print_error(options.files_name[i],"mapped memory failed\n", NULL, true);
                 }
                 if (ft_strncmp((char *) file_data, "!<arch>\n", 8) == 0)
-                    handle_archive_file(file_data, buf.st_size);    
+                    handle_archive_file(file_data, buf.st_size);
                 else {
                     options.file_name = ft_strdup(options.files_name[i]);
                     define_elf_type(file_data, options.files_name[i], buf.st_size);

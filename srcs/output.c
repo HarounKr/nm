@@ -9,17 +9,20 @@ void print_symbol(char *address, char type, char *name) {
     ft_putchar_fd('\n', 1);
 }
 
+void print_filename() {
+     if (options.files_nb > 1) {
+        ft_putchar_fd('\n', 1);
+        ft_putstr_fd(options.file_name, 1);
+        ft_putstr_fd(":\n", 1);
+    }
+}
+
 void handle_output(t_symbol_data *sym_data, int sym_size) {
     if (!options.p) {
         if (options.r)
             insertion_sort(sym_data, sym_size, 1);
         else
             insertion_sort(sym_data, sym_size, 0);
-    }
-    if (options.files_nb > 1) {
-        ft_putchar_fd('\n', 1);
-        ft_putstr_fd(options.file_name, 1);
-        ft_putstr_fd(":\n", 1);
     }
     for (int i = 0; i < sym_size; i++) {
         if (options.u) {

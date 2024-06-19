@@ -16,6 +16,7 @@ static int fill_symdata(t_symbol_data *sym_data, t_elf_64 elf_64) {
       
         name = &elf_64.strtab[st_name];
         if (ft_strlen(name) != STT_NOTYPE && type != STT_FILE) {
+            // printf("Name: %-10s | ", name);
             uint16_t st_shndx = convert_endian16(elf_64.symtab[i].st_shndx, elf_64.is_bigendian);
             // printf("st_shndx : %-10d |\n", st_shndx);
             uint64_t st_value = convert_endian64(elf_64.symtab[i].st_value, elf_64.is_bigendian);
@@ -67,11 +68,11 @@ int handle_elf_64(Elf64_Ehdr *file_hdr, u_int8_t *file_data, t_elf_64 elf_64) {
             strtab_hdr = &elf_64.sections_hdr[i];
         }
     }
+    print_filename();
     if (!is_symtab || !is_strtab) {
         free(elf_64.shstrtab);
         return print_error(options.file_name, ": no symbols\n", NULL, false);
     }
-
     // recupere la section symtab
     uint64_t sh_offset = convert_endian64(symtab_hdr->sh_offset, elf_64.is_bigendian);
     uint64_t symtab_size = convert_endian64(symtab_hdr->sh_size, elf_64.is_bigendian);

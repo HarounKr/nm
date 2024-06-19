@@ -57,11 +57,11 @@ int handle_elf_errors(Elf64_Ehdr *file_hdr, uint8_t *file_data, char *filename, 
         // printf("Section header string table index: : e_shstrndx : %d\n", elf_32.e_shstrndx);
     }
     if ((phoff == 0 && type != ET_REL) || shoff == 0 || shnum == 0 || shoff < sizeof_hdr || shoff >= (Elf64_Off) st_size)
-            return print_error(filename, ": file format not recognized 2\n", NULL, false);
+            return print_error(filename, ": file format not recognized\n", NULL, false);
     else if (file_hdr->e_ident[EI_DATA] != ELFDATA2LSB && file_hdr->e_ident[EI_DATA] != ELFDATA2MSB)
-        return print_error(filename, ": file format not recognized 3\n", NULL, false);
+        return print_error(filename, ": file format not recognized\n", NULL, false);
     else if (file_hdr->e_ident[EI_VERSION] != EV_CURRENT)
-        return print_error(filename, ": file format not recognized 4\n", NULL, false);
+        return print_error(filename, ": file format not recognized\n", NULL, false);
 
     return 0;
 }

@@ -1,6 +1,24 @@
-import argparse
-import subprocess
 import os
+import subprocess
+import sys
+import argparse
+
+def execute_command_on_files(command, directory):
+    # Parcourt tous les fichiers dans le répertoire spécifié
+    for filename in os.listdir(directory):
+        filepath = os.path.join(directory, filename)
+        if os.path.isfile(filepath):
+            # Exécute la commande sur le fichier
+            try:
+                result = subprocess.run([command, filepath], capture_output=True, text=True)
+                # Affiche la sortie dans la console
+                print(filepath)
+                if result.stdout:
+                    print(result.stdout)
+                elif result.stderr:
+                    print(result.stderr)
+            except Exception as e:
+                print(f"Failed to execute {command} on {filepath}: {e}")
 
 def run_command(command, files, output_file):
     # Exécute une commande avec une liste de fichiers et écrit sa sortie dans un fichier spécifié
@@ -10,7 +28,7 @@ def run_command(command, files, output_file):
             process = subprocess.Popen(full_command, stdout=file, stderr=subprocess.PIPE, text=True)
             _, stderr = process.communicate()
         if stderr:
-            print(f"Error while executing {' '.join(command)}: {stderr}")
+            print(stderr)
     except Exception as e:
         print(f"Error with the command {command}: {e}")
 
@@ -29,9 +47,8 @@ def main(args, opt):
         if os.path.exists(directory):
             files = [os.path.join(directory, f) for f in os.listdir(directory) if os.path.isfile(os.path.join(directory, f))]
             if files:
-                ft_nm_output_file = os.path.join(directory, "ft_nm_output.txt")
-                nm_output_file = os.path.join(directory, "nm_output.txt")
-                print(opt)
+                ft_nm_output_file = os.path.join("./", "ft_nm_output.txt")
+                nm_output_file = os.path.join("./", "nm_output.txt")
                 run_command([args.ft_nm] + opt, files, ft_nm_output_file)
                 run_command([args.nm] + opt, files, nm_output_file)
                 

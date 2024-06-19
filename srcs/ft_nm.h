@@ -11,6 +11,7 @@
 #include <elf.h>
 #include <stdbool.h>
 #include <string.h>
+#include <ctype.h>
 
 typedef struct s_symbol_data {
     char *address;
@@ -69,8 +70,8 @@ extern t_elf_32 elf_32;
 extern t_elf_64 elf_64;
 extern t_options options;
 
-extern char *text_sections[4];
-extern char *data_sections[6];
+extern char *text_sections[6];
+extern char *data_sections[10];
 extern char *ro_sections[5];
 extern char *weak_sections[4];
 
@@ -84,6 +85,7 @@ int     handle_elf_32(Elf32_Ehdr *file_hdr, u_int8_t *file_data, t_elf_32 elf_32
 int     handle_elf_64(Elf64_Ehdr *file_hdr, u_int8_t *file_data, t_elf_64 elf_64);
 int     is_upper(char c);
 int     print_error(char *file_name ,char *err, char *err_type, bool is_quote);
+void    print_filename();
 
 char    *formatted_address(uint64_t address, int index);
 char    get_final_symbol_type(unsigned int type, unsigned int bind, unsigned int size, char *section_name);
