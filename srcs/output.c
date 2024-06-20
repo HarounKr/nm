@@ -1,4 +1,4 @@
-#include "ft_nm.h"
+#include "../inc/ft_nm.h"
 
 void print_symbol(char *address, char type, char *name) {
     ft_putstr_fd(address, 1);

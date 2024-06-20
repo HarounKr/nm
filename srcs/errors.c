@@ -1,4 +1,4 @@
-#include "ft_nm.h"
+#include "../inc/ft_nm.h"
 
 int print_error(char *file_name ,char *err, char *err_type, bool is_quote) {
     ft_putstr_fd("ft_nm: ", 2);

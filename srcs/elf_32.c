@@ -1,4 +1,4 @@
-#include "ft_nm.h"
+#include "../inc/ft_nm.h"
 
 static int fill_symdata(t_symbol_data *sym_data, t_elf_32 elf_32) {
     char *name;

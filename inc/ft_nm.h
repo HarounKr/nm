@@ -23,7 +23,7 @@ typedef struct s_symbol_data {
 
 typedef struct s_options{
     char **files_name;
-    char *file_name;
+    char file_name[256];
     int  files_nb;
     bool a; // Afficher tous les symboles, même ceux spécifiques au débogueur
     bool g; // N'afficher que les symboles externes (globaux + indefinis).

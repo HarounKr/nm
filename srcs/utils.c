@@ -1,4 +1,4 @@
-#include "ft_nm.h"
+#include "../inc/ft_nm.h"
 
 void sym_data_init(t_symbol_data *sym_data, int size) {
     for (int i = 0; i < size; i++) {

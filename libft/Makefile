@@ -37,6 +37,7 @@ SRCS = ft_memset.c \
 	   ft_putendl_fd.c \
 	   ft_putnbr_fd.c \
 	   ft_strncat.c \
+	   ft_strcmp.c \
 
 SRC_bonus = ft_lstnew.c \
 			ft_lstadd_front.c \

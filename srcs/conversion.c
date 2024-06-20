@@ -1,4 +1,4 @@
-#include "ft_nm.h"
+#include "../inc/ft_nm.h"
 
 uint64_t convert_endian64(uint64_t value, unsigned char data_encoding) {
     // printf("elf_64.is_bigendian %d\n", data_encoding);
