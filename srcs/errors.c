@@ -1,6 +1,7 @@
 #include "../inc/ft_nm.h"
 
 int print_error(char *file_name ,char *err, char *err_type, bool is_quote) {
+    
     ft_putstr_fd("ft_nm: ", 2);
     if (err_type && !ft_strncmp(err_type, "Warning", ft_strlen(err_type)))
         ft_putstr_fd("Warning: ", 2);
@@ -15,6 +16,7 @@ int print_error(char *file_name ,char *err, char *err_type, bool is_quote) {
 }
 
 int handle_elf_errors(Elf64_Ehdr *file_hdr, uint8_t *file_data, char *filename, long int st_size) {
+
     Elf64_Ehdr *hdr64;
     Elf32_Ehdr* hdr32;
     Elf64_Off shoff;
@@ -34,11 +36,7 @@ int handle_elf_errors(Elf64_Ehdr *file_hdr, uint8_t *file_data, char *filename, 
         elf_64.e_shoff = shoff;
         elf_64.e_shnum = shnum;
         sizeof_hdr = sizeof(Elf64_Ehdr);
-        
-        // printf("Start of program headers: e_phoff: %ld\n", phoff);
-        // printf("Start of section headers: e_shnum: %ld\n",shoff);
-        // printf("Number of section headers: e_shnum: %d\n", shnum);
-        // printf("Section header string table index: e_shstrndx: %d\n", elf_64.e_shstrndx);
+
     } else if (file_hdr->e_ident[EI_CLASS] == ELFCLASS32) {
         hdr32 = (Elf32_Ehdr*) file_data;
         elf_32.is_bigendian = 0;
@@ -50,11 +48,6 @@ int handle_elf_errors(Elf64_Ehdr *file_hdr, uint8_t *file_data, char *filename, 
         elf_32.e_shoff = shoff;
         elf_32.e_shnum = shnum;
         sizeof_hdr = sizeof(Elf32_Ehdr);
-
-        // printf("Start of program headers: %ld\n", phoff);
-        // printf("Start of section headers: %ld\n",shoff);
-        // printf("Number of section headers: %d\n", shnum);
-        // printf("Section header string table index: : e_shstrndx : %d\n", elf_32.e_shstrndx);
     }
     if ((phoff == 0 && type != ET_REL) || shoff == 0 || shnum == 0 || shoff < sizeof_hdr || shoff >= (Elf64_Off) st_size)
             return print_error(filename, ": file format not recognized\n", NULL, false);

@@ -37,11 +37,6 @@ int is_section(char *section_name, char **sections) {
 }
 
 char get_final_symbol_type(unsigned int type, unsigned int bind, unsigned int size, char *section_name) {
-    // printf("type  name : %-10s | ", get_elf_symbol_type(type));
-    // printf("type  : %-10d | ", type);
-    // printf("bind  : %-10d | ", bind);
-    // printf("section  : %-30s |\n", section_name);
-    
     if (bind == STB_WEAK) {
         if (!ft_strlen(section_name))
             return 'w';

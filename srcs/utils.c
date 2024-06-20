@@ -6,7 +6,6 @@ void sym_data_init(t_symbol_data *sym_data, int size) {
         sym_data[i].type = 0;
         sym_data[i].name = NULL;
         sym_data[i].is_undefined = false;
-        sym_data[i].is_external = false;
     }
 }
 
@@ -60,7 +59,7 @@ void insertion_sort(t_symbol_data *array, int n, int reverse) {
 
         while (j >= 0) {
             compare = compare_strings(array[j].name, key.name);
-            if (reverse ? compare < 0 : compare > 0) {
+            if (reverse ? compare <= 0 : compare > 0) {
                 array[j + 1] = array[j];
                 j = j - 1;
             }
@@ -74,5 +73,5 @@ void insertion_sort(t_symbol_data *array, int n, int reverse) {
 int is_upper(char c) {
     if  (c >= 65 && c <= 90)
         return 0;
-    return 1;  
+    return 1;
 }

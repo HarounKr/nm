@@ -18,7 +18,6 @@ typedef struct s_symbol_data {
     char type;
     char *name;
     bool   is_undefined;
-    bool   is_external;
 } t_symbol_data;
 
 typedef struct s_options{
@@ -81,8 +80,8 @@ void    help_output();
 void    sym_data_init(t_symbol_data *sym_data, int size);
 
 int     handle_elf_errors(Elf64_Ehdr *file_hdr, uint8_t *file_data, char *filename, long int st_size);
-int     handle_elf_32(Elf32_Ehdr *file_hdr, u_int8_t *file_data, t_elf_32 elf_32);
-int     handle_elf_64(Elf64_Ehdr *file_hdr, u_int8_t *file_data, t_elf_64 elf_64);
+int     handle_elf_32(u_int8_t *file_data, t_elf_32 elf_32);
+int     handle_elf_64(u_int8_t *file_data, t_elf_64 elf_64);
 int     is_upper(char c);
 int     print_error(char *file_name ,char *err, char *err_type, bool is_quote);
 void    print_filename();

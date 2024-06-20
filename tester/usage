@@ -1,0 +1,3 @@
+simple usage : python3 tester.py --ft_nm <ft_nm executable> --nm  </usr/bin/nm> <directory>
+check leak usage : python3 tester.py --valgrind  --ft_nm <ft_nm executable> --nm  </usr/bin/nm> <directory>
+check leak usage : python3 tester.py --ft_nm <ft_nm executable> --nm  </usr/bin/nm> <directory> <flags..>
