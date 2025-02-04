@@ -19,18 +19,18 @@
    ```
 3. Compile the project using **Make**:
     ```bash
-    cd nm
+    make
     ```
 4. Run : 
     ```bash
     ./ft_nm <binary_file>
     ```
-## Example : 
+## Example: 
 ```bash
 ./ft_nm tester/good_files/a.out
 ```
 
-**Output**:
+**Output**
 ```bash
 0000000000601028 B __bss_start
 0000000000601028 b completed.7698
