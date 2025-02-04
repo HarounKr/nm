@@ -5,7 +5,7 @@ python3 tester.py --ft_nm <ft_nm executable> --nm  </usr/bin/nm> <directory>
 
 ## Check for memory leaks : 
 ```bash
-python3 tester.py --valgrind  --ft_nm <ft_nm executable> --nm  </usr/bin/nm> <directory>
+python3 tester.py --valgrind  --ft_nm <ft_nm executable>
 ```
 ## Usage with flags : 
 ```bash
